@@ -55,25 +55,17 @@ func SetConfig(config *Config) {
 
 	// 赢家获取的奖金百分比
 	winnerBonus := config.GetWinnerBonus()
-	if validPercent(winnerBonus) {
-		f3dBonusWinner = winnerBonus
-	}
-
 	// 用户持有key分红百分比
 	keyBonus := config.GetKeyBonus()
-	if validPercent(keyBonus) {
-		f3dBonusKey = keyBonus
-	}
-
 	// 滚动到下期奖金池百分比
 	poolBonus := config.GetPoolBonus()
-	if validPercent(poolBonus) {
-		f3dBonusPool = poolBonus
-	}
-
 	// 平台运营及开发者费用百分比
 	developBonus := config.GetDeveloperBonus()
-	if validPercent(developBonus) {
+
+	if validSum(winnerBonus, keyBonus, poolBonus, developBonus) {
+		f3dBonusWinner = winnerBonus
+		f3dBonusKey = keyBonus
+		f3dBonusPool = poolBonus
 		f3dBonusDeveloper = developBonus
 	}
 
@@ -171,4 +163,21 @@ func validTime(time int64) bool {
 		return true
 	}
 	return false
+}
+
+func validSum(vals ...float32) bool {
+	sum := float32(0)
+	for _, val := range vals {
+		if validPercent(val) {
+			sum += val
+		} else {
+			return false
+		}
+	}
+
+	if sum == 1 {
+		return true
+	} else {
+		return false
+	}
 }
