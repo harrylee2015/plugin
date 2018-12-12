@@ -7,23 +7,31 @@ import (
 
 // action for executor
 const (
-	f3dActionStart = iota + 1
-	f3dActionDraw
-	f3dActionBuy
+	F3dActionStart = iota + 1
+	F3dActionDraw
+	F3dActionBuy
 )
 
 const (
-	TyLogf3dUnknown = iota
+	TyLogf3dUnknown = iota + 100
 	TyLogf3dStart
 	TyLogf3dDraw
 	TyLogf3dBuy
 )
 
+// query func name
+const (
+	FuncNameQueryLastRoundInfo           = "QueryLastRoundInfo"
+	FuncNameQueryRoundInfoByRound        = "QueryRoundInfoByRound"
+	FuncNameQueryKeyCountByRoundAndAddr  = "QueryKeyCountByRoundAndAddr"
+	FuncNameQueryBuyRecordByRoundAndAddr = "QueryBuyRecordByRoundAndAddr"
+)
+
 var (
 	logMap = map[string]int32{
-		"Start": f3dActionStart,
-		"Draw":  f3dActionDraw,
-		"Buy":   f3dActionBuy,
+		"Start": F3dActionStart,
+		"Draw":  F3dActionDraw,
+		"Buy":   F3dActionBuy,
 	}
 
 	typeMap   = map[int64]*types.LogInfo{}
@@ -53,9 +61,9 @@ func (t *f3dType) GetPayload() types.Message {
 
 func (t *f3dType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Start": f3dActionStart,
-		"Draw":  f3dActionDraw,
-		"Buy":   f3dActionBuy,
+		"Start": F3dActionStart,
+		"Draw":  F3dActionDraw,
+		"Buy":   F3dActionBuy,
 	}
 }
 
