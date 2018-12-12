@@ -13,6 +13,10 @@ message GameDrawReq {
     int64 round = 1;
 }
 
+message GameBuyKeysReq {
+    int64 num = 1;
+}
+
 message KeyInfoQueryReq {
     string addr = 1;
     int64 round = 2;
@@ -26,5 +30,7 @@ service f3d {
     rpc Start (F3dStart) returns (UnsignTx) {
     }
     rpc LuckyDraw (F3dLuckyDraw) returns (UnsignTx) {
+    }
+    rpc BuyKeys(F3dBuyKey) returns (UnsignTx) {
     }
 }

@@ -45,3 +45,19 @@ func (c *channelClient) LuckyDraw(ctx context.Context, luckyDraw *ptypes.F3DLuck
 
 	return &types.UnsignTx{Data: data}, nil
 }
+
+func (c *channelClient) BuyKeys(ctx context.Context, buyKeys *ptypes.F3DBuyKey) (*types.UnsignTx, error) {
+	val := &ptypes.F3DAction{
+		Ty:    ptypes.F3dActionBuy,
+		Value: &ptypes.F3DAction_Buy{Buy: buyKeys,},
+	}
+	tx := &types.Transaction{
+		Payload: types.Encode(val),
+	}
+	data, err := types.FormatTxEncode(ptypes.F3DX, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.UnsignTx{Data: data}, nil
+}

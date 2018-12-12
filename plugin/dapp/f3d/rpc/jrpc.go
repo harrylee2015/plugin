@@ -45,3 +45,21 @@ func (c *Jrpc) F3DLuckyDrawTx(parm *ptypes.GameDrawReq, result *interface{}) err
 	*result = hex.EncodeToString(reply.Data)
 	return nil
 }
+
+func (c *Jrpc) F3DBuyKeysTx(parm *ptypes.GameBuyKeysReq, result *interface{}) error {
+	if parm == nil {
+		return types.ErrInvalidParam
+	}
+
+	buyKey := &ptypes.F3DBuyKey{
+		KeyNum: parm.Num,
+	}
+
+	reply, err := c.cli.LuckyDraw(context.Background(), buyKey)
+	if err != nil {
+		return err
+	}
+	*result = hex.EncodeToString(reply.Data)
+	return nil
+
+}

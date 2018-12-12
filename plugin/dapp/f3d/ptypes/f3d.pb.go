@@ -37,6 +37,7 @@ It has these top-level messages:
 	Config
 	GameStartReq
 	GameDrawReq
+	GameBuyKeysReq
 	KeyInfoQueryReq
 	RoundInfoQueryReq
 */

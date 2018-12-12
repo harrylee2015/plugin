@@ -7,6 +7,7 @@
 package commands
 
 import (
+	"fmt"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
@@ -37,6 +38,7 @@ func F3DGameCmd() *cobra.Command {
 	cmd.AddCommand(
 		createF3DGameCmd(),
 		luckyDrawF3DGameCmd(),
+		buyKeyF3DGameCmd(),
 	)
 	return cmd
 }
@@ -56,7 +58,8 @@ func F3DInfoCmd() *cobra.Command {
 }
 
 func addF3DGameFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("game round", "r", "", "Game Round")
+	cmd.Flags().Int64P("round", "r", 0, "Game Round")
+	cmd.MarkFlagRequired("round")
 }
 
 func createF3DGameCmd() *cobra.Command {
@@ -99,6 +102,34 @@ func luckyDraw(cmd *cobra.Command, args []string) {
 	var res string
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DLuckyDrawTx", params, &res)
 	ctx.RunWithoutMarshal()
+}
+
+func buyKeyF3DGameCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "buy",
+		Short: "Buy some keys",
+		Run:   buyKeys,
+	}
+	addNumberFlags(cmd)
+	return cmd
+}
+
+func buyKeys(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	num, _ := cmd.Flags().GetInt64("num")
+
+	params := ptypes.GameBuyKeysReq{
+		Num: num,
+	}
+
+	var resp string
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.BuyKeys", params, &resp)
+	ctx.RunWithoutMarshal()
+}
+
+func addNumberFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("number", "n", 0, "the number of keys that you want to buy.")
+	cmd.MarkFlagRequired("number")
 }
 
 func recordInfoCmd() *cobra.Command {
@@ -167,9 +198,11 @@ func roundInfoQuery(cmd *cobra.Command, args []string) {
 	req := ptypes.QueryF3DByRound{
 		Round: round,
 	}
+	fmt.Println(req)
+
 	params.FuncName = ptypes.FuncNameQueryRoundInfoByRound
 	params.Payload = types.MustPBToJSON(&req)
-	resp = &ptypes.ReplyF3D{}
+	resp = &ptypes.RoundInfo{}
 
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()
@@ -208,7 +241,7 @@ func lastRoundInfoQuery(cmd *cobra.Command, args []string) {
 	req := ptypes.QueryF3DLastRound{}
 	params.FuncName = ptypes.FuncNameQueryLastRoundInfo
 	params.Payload = types.MustPBToJSON(&req)
-	resp = &ptypes.ReplyF3D{}
+	resp = &ptypes.RoundInfo{}
 
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()

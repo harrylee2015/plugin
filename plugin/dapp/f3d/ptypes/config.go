@@ -159,7 +159,7 @@ func validPercent(percent float32) bool {
 }
 
 func validTime(time int64) bool {
-	if time >= 0 {
+	if time > 0 {
 		return true
 	}
 	return false
