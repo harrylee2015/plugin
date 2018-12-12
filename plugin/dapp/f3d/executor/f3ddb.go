@@ -437,6 +437,25 @@ func getF3dRoundInfo(db dbm.KV, key []byte) (*pt.RoundInfo, error) {
 
 }
 
+func getF3dRoundsInfo(db dbm.KV, keys [][]byte) (*pt.RoundsInfo, error) {
+	value, err := db.BatchGet(keys)
+	if err != nil {
+		flog.Error("F3D db getF3dRoundsInfo", "can't get value from db, keys:", keys, "err", err.Error())
+		return nil, err
+	}
+
+	var infos pt.RoundsInfo
+	for _, val := range value {
+		var info pt.RoundInfo
+		err = types.Decode(val, &info)
+		if err != nil {
+			continue
+		}
+		infos.RoundsInfo = append(infos.RoundsInfo, &info)
+	}
+	return &infos, nil
+}
+
 func getF3dAddrInfo(db dbm.KV, key []byte) (*pt.AddrInfo, error) {
 	value, err := db.Get(key)
 	if err != nil {
@@ -535,11 +554,34 @@ func queryList(db dbm.Lister, stateDB dbm.KV, param interface{}) (types.Message,
 	}
 	//query rounds info by range round
 	if query, ok := param.(*pt.QueryF3DListByRound); ok {
-		if query.StartRound == 0 {
-			return nil, fmt.Errorf("Start round can't be zero!")
+		if query.StartRound <= 0 {
+			return nil, fmt.Errorf("Start round in invalid!")
 		}
 
-		db.List(nil, Key(calcF3dByRound(query.StartRound)), query.Count, query.Direction)
+		var keys [][]byte
+		if query.Direction == 0 {
+			for i := 0; i < int(count); i++ {
+				r := query.StartRound - int64(i)
+				if r > 0 {
+					key := Key(calcF3dByRound(r))
+					keys = append(keys, key)
+				} else {
+					return nil, fmt.Errorf("Rounds count is invalid.")
+				}
+			}
+		} else {
+			for i := 0; i < int(count); i ++ {
+				r := query.StartRound + int64(i)
+				key := Key(calcF3dByRound(r))
+				keys = append(keys, key)
+			}
+		}
+		rounds, err := getF3dRoundsInfo(stateDB, keys)
+		if err != nil {
+			flog.Error("F3D db queryList", "can't get rounds info, err:", err.Error())
+			return nil, err
+		}
+		return rounds, nil
 	}
 	//query addr info
 	if query, ok := param.(*pt.QueryKeyCountByRoundAndAddr); ok {
