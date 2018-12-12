@@ -55,7 +55,7 @@ func (c *Jrpc) F3DBuyKeysTx(parm *ptypes.GameBuyKeysReq, result *interface{}) er
 		KeyNum: parm.Num,
 	}
 
-	reply, err := c.cli.LuckyDraw(context.Background(), buyKey)
+	reply, err := c.cli.BuyKeys(context.Background(), buyKey)
 	if err != nil {
 		return err
 	}
