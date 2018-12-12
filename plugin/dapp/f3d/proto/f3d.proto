@@ -190,5 +190,5 @@ message Config {
     int64 nouserDecrTime = 10;
     float startKeyPrice = 11;
     float incrKeyPrice = 12;
-} 
+}
 

@@ -1,24 +1,26 @@
 package rpc
 
 import (
-	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/rpc/types"
 )
 
-type channelClient struct {
-	rpctypes.ChannelClient
-}
-
+// Jrpc relay Jrpc interface
 type Jrpc struct {
 	cli *channelClient
 }
 
+// Grpc relay Grpc interface
 type Grpc struct {
 	*channelClient
 }
 
-//func Init(name string, s rpctypes.RPCServer) {
-//	cli := &channelClient{}
-//	grpc := &Grpc{channelClient: cli}
-//	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
-//
-//}
+type channelClient struct {
+	types.ChannelClient
+}
+
+// Init relay rpc register
+func Init(name string, s types.RPCServer) {
+	cli := &channelClient{}
+	grpc := &Grpc{channelClient: cli}
+	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
+}

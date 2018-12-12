@@ -12,7 +12,7 @@ func init() {
 		Name:     pt.F3DX,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
-		Cmd:      commands.Cmd,
+		Cmd:      commands.F3DCmd,
 		RPC:      nil,
 	})
 }

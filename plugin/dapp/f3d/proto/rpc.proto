@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package types;
+
+message GameStartReq {
+    int64 round = 1;
+}
+
+message GameDrawReq {
+    int64 round = 1;
+}
+
+message KeyInfoQueryReq {
+    string addr = 1;
+    int64 round = 2;
+}
+
+message RoundInfoQueryReq {
+    int64 round = 1;
+}

@@ -533,7 +533,14 @@ func queryList(db dbm.Lister, stateDB dbm.KV, param interface{}) (types.Message,
 		}
 		return round, nil
 	}
+	//query rounds info by range round
+	if query, ok := param.(*pt.QueryF3DListByRound); ok {
+		if query.StartRound == 0 {
+			return nil, fmt.Errorf("Start round can't be zero!")
+		}
 
+		db.List(nil, Key(calcF3dByRound(query.StartRound)), query.Count, query.Direction)
+	}
 	//query addr info
 	if query, ok := param.(*pt.QueryKeyCountByRoundAndAddr); ok {
 		if query.Round == 0 || query.Addr == "" {
