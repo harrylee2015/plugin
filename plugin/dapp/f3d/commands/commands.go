@@ -57,7 +57,7 @@ func F3DInfoCmd() *cobra.Command {
 }
 
 func addF3DGameFlags(cmd *cobra.Command) {
-
+	cmd.Flags().StringP("game round", "r", "", "Game Round")
 }
 
 func createF3DGameCmd() *cobra.Command {
@@ -108,9 +108,11 @@ func userInfoCmd() *cobra.Command {
 		Short: "Show the user info matched by address.",
 		Run:   userInfoQuery,
 	}
-	addF3DGameFlags(cmd)
+	addUserInfoFlag(cmd)
 	return cmd
 }
+
+func addUserInfoFlag(cmd *cobra.Command) {}
 
 func recordInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -118,8 +120,15 @@ func recordInfoCmd() *cobra.Command {
 		Short: "Show the buy record about the user matched by address and round.",
 		Run:   buyRecordInfoQuery,
 	}
-	addF3DGameFlags(cmd)
+	addRecordInfoQueryFlags(cmd)
 	return cmd
+}
+
+func addRecordInfoQueryFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("round", "r", 0, "Game Round")
+	cmd.Flags().Int64P("index", "i", 0, "index")
+	cmd.Flags().StringP("addr", "a", "", "user addr")
+	cmd.MarkFlagRequired("round")
 }
 
 func roundInfoCmd() *cobra.Command {
@@ -138,8 +147,16 @@ func roundsInfoCmd() *cobra.Command {
 		Short: "Show the round info matched by round.",
 		Run:   roundsInfoQuery,
 	}
-	addF3DGameFlags(cmd)
+	addRoundsInfoQueryFlag(cmd)
 	return cmd
+}
+
+func addRoundsInfoQueryFlag(cmd *cobra.Command) {
+	cmd.Flags().Int64P("start round", "s", 0, "start round")
+	cmd.Flags().Int32P("direction", "d", 0, "query direction, 0: desc  1:asc")
+	cmd.Flags().Int32P("count", "c", 0, "query amount")
+
+	cmd.MarkFlagRequired("start round")
 }
 
 func lastRoundInfoCmd() *cobra.Command {
@@ -148,7 +165,7 @@ func lastRoundInfoCmd() *cobra.Command {
 		Short: "Show the last round info.",
 		Run:   lastRoundInfoQuery,
 	}
-	addF3DGameFlags(cmd)
+
 	return cmd
 }
 
