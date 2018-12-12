@@ -310,6 +310,7 @@ func (action *Action) F3dBuyKey(buy *pt.F3DBuyKey) (*types.Receipt, error) {
 	lastRound.LastKeyTime = action.blocktime
 	lastRound.UpdateTime = action.blocktime
 	lastRound.LastOwner = action.fromaddr
+	lastRound.RemainTime = lastRound.RemainTime + lastRound.UpdateTime - action.blocktime
 	addTime := 30 * buy.KeyNum
 	if addTime >= pt.GetF3dTimeMaxkey() {
 		addTime = pt.GetF3dTimeMaxkey()
