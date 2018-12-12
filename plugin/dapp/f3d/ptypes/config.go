@@ -152,7 +152,7 @@ func validAddr(addr string) bool {
 }
 
 func validPercent(percent float32) bool {
-	if percent >= 0 && percent <= 1 {
+	if percent > 0 && percent < 1 {
 		return true
 	}
 	return false
