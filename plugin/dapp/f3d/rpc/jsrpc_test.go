@@ -40,6 +40,7 @@ func TestJRPCChannel(t *testing.T) {
 	}{
 		{fn: testGameCreateRawTxCmd},
 		{fn: testGameLuckyDrawTxCmd},
+		{fn: testGameBuyKeysTxCmd},
 		{fn: testRoundInfoCmd},
 		{fn: testRoundListCmd},
 	}
@@ -65,6 +66,12 @@ func testGameLuckyDrawTxCmd(t *testing.T, jrpc *jsonclient.JSONClient) error {
 	params := &pty.GameDrawReq{}
 	var res string
 	return jrpc.Call("f3d.F3DLuckyDrawTx", params, &res)
+}
+
+func testGameBuyKeysTxCmd(t *testing.T, jrpc *jsonclient.JSONClient)error {
+	params := &pty.GameBuyKeysReq{}
+	var res string
+	return jrpc.Call("f3d.F3DBuyKeysTx", params, &res)
 }
 
 func testRoundInfoCmd(t *testing.T, jrpc *jsonclient.JSONClient) error {

@@ -123,7 +123,7 @@ func buyKeys(cmd *cobra.Command, args []string) {
 	}
 
 	var resp string
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.BuyKeys", params, &resp)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DBuyKeysTx", params, &resp)
 	ctx.RunWithoutMarshal()
 }
 
