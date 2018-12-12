@@ -11,6 +11,7 @@ import (
 	"github.com/33cn/plugin/plugin/dapp/f3d/commands"
 	"github.com/33cn/plugin/plugin/dapp/f3d/executor"
 	pt "github.com/33cn/plugin/plugin/dapp/f3d/ptypes"
+	"github.com/33cn/plugin/plugin/dapp/f3d/rpc"
 )
 
 func init() {
@@ -19,6 +20,6 @@ func init() {
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.F3DCmd,
-		RPC:      nil,
+		RPC:      rpc.Init,
 	})
 }

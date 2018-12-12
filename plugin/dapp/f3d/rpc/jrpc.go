@@ -38,7 +38,7 @@ func (c *Jrpc) F3DLuckyDrawTx(parm *ptypes.GameDrawReq, result *interface{}) err
 		Round: parm.Round,
 	}
 
-	reply, err := c.cli.Draw(context.Background(), luckyDraw)
+	reply, err := c.cli.LuckyDraw(context.Background(), luckyDraw)
 	if err != nil {
 		return err
 	}

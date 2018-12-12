@@ -30,7 +30,7 @@ func (c *channelClient) Start(ctx context.Context, start *ptypes.F3DStart) (*typ
 	return &types.UnsignTx{Data: data}, nil
 }
 
-func (c *channelClient) Draw(ctx context.Context, luckyDraw *ptypes.F3DLuckyDraw) (*types.UnsignTx, error) {
+func (c *channelClient) LuckyDraw(ctx context.Context, luckyDraw *ptypes.F3DLuckyDraw) (*types.UnsignTx, error) {
 	val := &ptypes.F3DAction{
 		Ty:    ptypes.F3dActionDraw,
 		Value: &ptypes.F3DAction_Draw{Draw: luckyDraw,},

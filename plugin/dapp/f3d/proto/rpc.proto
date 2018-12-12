@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "transaction.proto";
+import "f3d.proto";
+
 package types;
 
 message GameStartReq {
@@ -17,4 +20,11 @@ message KeyInfoQueryReq {
 
 message RoundInfoQueryReq {
     int64 round = 1;
+}
+
+service f3d {
+    rpc Start (F3dStart) returns (UnsignTx) {
+    }
+    rpc LuckyDraw (F3dLuckyDraw) returns (UnsignTx) {
+    }
 }
