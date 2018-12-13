@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/types"
 	ptypes "github.com/33cn/plugin/plugin/dapp/f3d/ptypes"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 func F3DCmd() *cobra.Command {
@@ -97,11 +98,64 @@ func luckyDraw(cmd *cobra.Command, args []string) {
 	round, _ := cmd.Flags().GetInt64("round")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
-	params := ptypes.GameDrawReq{Round: round}
+	// 检测是否到了开奖时间
+	//go func() {
+	var interval time.Duration
+	for {
+		roundInfo := getLastRoundInfo(rpcLaddr)
+		if remainTimeCheck(round, roundInfo, &interval) {
+			fmt.Println("Begin to luckydraw, time:", time.Now().Unix())
+			params := ptypes.GameDrawReq{Round: round}
 
-	var res string
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DLuckyDrawTx", params, &res)
-	ctx.RunWithoutMarshal()
+			var res string
+			ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DLuckyDrawTx", params, &res)
+			ctx.RunWithoutMarshal()
+			break
+		}
+		fmt.Println("It 's not time to luckydraw , remainTime is ", roundInfo.RemainTime, ", interval:", interval*time.Second, ", now:", time.Now().Unix())
+		time.Sleep(interval * time.Second)
+		continue
+	}
+	//}()
+}
+
+func getLastRoundInfo(rpcAddr string) *ptypes.RoundInfo {
+	var params rpctypes.Query4Jrpc
+	var resp interface{}
+
+	params.Execer = ptypes.F3DX
+	params.FuncName = ptypes.FuncNameQueryLastRoundInfo
+	params.Payload = types.MustPBToJSON(&ptypes.QueryF3DLastRound{})
+	resp = &ptypes.RoundInfo{}
+
+	ctx := jsonclient.NewRPCCtx(rpcAddr, "Chain33.Query", params, resp)
+	ctx.Run()
+
+	return resp.(*ptypes.RoundInfo)
+}
+
+func remainTimeCheck(round int64, info *ptypes.RoundInfo, interval *time.Duration) bool {
+	if round != info.Round {
+
+		return false
+	}
+
+	currentTime := time.Now().Unix()
+	remainTime := info.RemainTime + info.UpdateTime - currentTime
+
+	if remainTime > 600 {
+		*interval = 600
+	} else if remainTime > 300 {
+		*interval = 60
+	} else if remainTime > 60 {
+		*interval = 30
+	} else if remainTime > 0 {
+		*interval = 10
+	} else {
+		return true
+	}
+
+	return false
 }
 
 func buyKeyF3DGameCmd() *cobra.Command {
@@ -170,7 +224,7 @@ func roundsInfoCmd() *cobra.Command {
 }
 
 func addRoundsInfoQueryFlag(cmd *cobra.Command) {
-	cmd.Flags().Int64P("start round", "s", 0, "start round")
+	cmd.Flags().Int64P("startRound", "s", 0, "start round")
 	cmd.Flags().Int32P("direction", "d", 0, "query direction, 0: desc  1:asc")
 	cmd.Flags().Int32P("count", "c", 0, "query amount")
 
@@ -245,6 +299,8 @@ func lastRoundInfoQuery(cmd *cobra.Command, args []string) {
 
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()
+
+	fmt.Println(resp.(*ptypes.RoundInfo).RemainTime)
 }
 
 func buyRecordInfoQuery(cmd *cobra.Command, args []string) {

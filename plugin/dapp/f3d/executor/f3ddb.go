@@ -581,7 +581,7 @@ func queryList(db dbm.Lister, stateDB dbm.KV, param interface{}) (types.Message,
 	//query rounds info by range round
 	if query, ok := param.(*pt.QueryF3DListByRound); ok {
 		if query.StartRound <= 0 {
-			return nil, fmt.Errorf("Start round in invalid!")
+			return nil, fmt.Errorf("Start round is invalid!")
 		}
 
 		var keys [][]byte
