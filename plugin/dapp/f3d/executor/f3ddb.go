@@ -139,33 +139,6 @@ func (action *Action) updateCount(status int32, addr string) (kvset []*types.Key
 	return kvset
 }
 
-//func (action *Action) updateStateDBCache(param interface{}){
-//	if roundInfo, ok := param.(*pt.RoundInfo); ok {
-//		action.db.Set(Key(calcF3dByRound(roundInfo.Round)), types.Encode(roundInfo))
-//		action.db.Set(Key(F3dRoundLast), types.Encode(roundInfo))
-//	}
-//	if keyInfo, ok := param.(*pt.KeyInfo); ok {
-//		addrInfo,err:=getF3dAddrInfo(action.db,Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)))
-//		action.db.Set(Key(calcF3dUserKeys(keyInfo.Round, keyInfo.Addr,action.GetIndex())), types.Encode(keyInfo))
-//		if err !=nil {
-//			flog.Warn("F3D db getF3dAddrInfo", "can't get value from db,key:", calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr))
-//			var addr pt.AddrInfo
-//			addr.Addr=action.fromaddr
-//			addr.KeyNum=keyInfo.KeyNum
-//			addr.IsFirstBuy=true
-//			action.db.Set(Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), types.Encode(&addr))
-//		}else{
-//			addrInfo.Addr=action.fromaddr
-//			addrInfo.IsFirstBuy=false
-//			addrInfo.KeyNum=addrInfo.KeyNum+keyInfo.KeyNum
-//			action.db.Set(Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), types.Encode(addrInfo))
-//		}
-//
-//
-//	}
-//
-//}
-
 // Key gameId to save key
 func Key(id string) (key []byte) {
 	key = append(key, []byte("mavl-"+pt.F3DX+"-")...)
@@ -656,43 +629,3 @@ func queryList(db dbm.Lister, stateDB dbm.KV, param interface{}) (types.Message,
 	}
 	return nil, fmt.Errorf("this query can't be supported!")
 }
-
-//func getConfValue(db dbm.KV, key string, defaultValue int64) int64 {
-//	value, err := getConfigKey(key, db)
-//	if err != nil {
-//		return defaultValue
-//	}
-//	if value != nil {
-//		v, err := strconv.ParseInt(string(value), 10, 64)
-//		if err != nil {
-//			flog.Error("gamedb getConfValue", "Type conversion error:", err.Error())
-//			return defaultValue
-//		}
-//		return v
-//	}
-//	return defaultValue
-//}
-
-//func getManageKey(key string, db dbm.KV) ([]byte, error) {
-//	manageKey := types.ManageKey(key)
-//	value, err := db.Get([]byte(manageKey))
-//	if err != nil {
-//		if types.IsPara() { //平行链只有一种存储方式
-//			flog.Error("gamedb getManage", "can't get value from db,key:", key, "err", err.Error())
-//			return nil, err
-//		}
-//		flog.Debug("gamedb getManageKey", "get db key", "not found")
-//		return getConfigKey(key, db)
-//	}
-//	return value, nil
-//}
-
-//func getConfigKey(key string, db dbm.KV) ([]byte, error) {
-//	configKey := types.ConfigKey(key)
-//	value, err := db.Get([]byte(configKey))
-//	if err != nil {
-//		flog.Error("gamedb getConfigKey", "can't get value from db,key:", key, "err", err.Error())
-//		return nil, err
-//	}
-//	return value, nil
-//}
