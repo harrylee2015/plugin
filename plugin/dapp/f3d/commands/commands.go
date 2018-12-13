@@ -67,16 +67,23 @@ func createF3DGameCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "create a new f3d game.",
-		Run:   create,
+		Run:   createNewGame,
 	}
 	addF3DGameFlags(cmd)
 	return cmd
 }
 
-func create(cmd *cobra.Command, args []string) {
+func createNewGame(cmd *cobra.Command, args []string) {
 	round, _ := cmd.Flags().GetInt64("round")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
+	if round > 0 {
+		start(round, rpcLaddr)
+	}
+}
+
+func start(round int64, rpcLaddr string) {
+	// 开启新一轮
 	params := ptypes.GameStartReq{Round: round}
 
 	var res string
@@ -88,43 +95,54 @@ func luckyDrawF3DGameCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "draw",
 		Short: "Send the bonus to the last user that buys the key",
-		Run:   luckyDraw,
+		Run:   runLuckyDraw,
 	}
-	addF3DGameFlags(cmd)
+	addF3DGameLuckyDrawFlags(cmd)
 	return cmd
 }
 
-func luckyDraw(cmd *cobra.Command, args []string) {
+func addF3DGameLuckyDrawFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("round", "r", 0, "Game Round")
+	cmd.Flags().BoolP("force", "f", false, "force lucky draw")
+	cmd.MarkFlagRequired("round")
+}
+
+func runLuckyDraw(cmd *cobra.Command, args []string) {
 	round, _ := cmd.Flags().GetInt64("round")
+	force, _ := cmd.Flags().GetBool("force")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-
-	// 检测是否到了开奖时间
-	//go func() {
-	var interval time.Duration
-	for {
-		roundInfo := getLastRoundInfo(rpcLaddr)
-		if !roundCheck(round, roundInfo) {
-			return
+	if force {
+		// 直接开奖
+		luckDraw(round, rpcLaddr)
+	} else {
+		// 检测是否到了开奖时间
+		//go func() {
+		var interval time.Duration
+		for {
+			roundInfo := getLastRoundInfo(rpcLaddr)
+			if !roundCheck(round, roundInfo) {
+				return
+			}
+			if remainTimeCheck(roundInfo, &interval) {
+				fmt.Println("Begin to luckydraw, time:", time.Now().Unix())
+				luckDraw(round, rpcLaddr)
+				break
+			}
+			fmt.Println("It 's not time to luckydraw , interval:", interval*time.Second, ", now:", time.Now().Unix())
+			time.Sleep(interval * time.Second)
+			continue
 		}
-		if remainTimeCheck(roundInfo, &interval) {
-			fmt.Println("Begin to luckydraw, time:", time.Now().Unix())
-			params := ptypes.GameDrawReq{Round: round}
-
-			var res string
-			ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DLuckyDrawTx", params, &res)
-			ctx.RunWithoutMarshal()
-			break
-		}
-		fmt.Println("It 's not time to luckydraw , remainTime is ", roundInfo.RemainTime, ", interval:", interval*time.Second, ", now:", time.Now().Unix())
-		time.Sleep(interval * time.Second)
-		continue
+		//}()
 	}
-	//}()
-	// 开启新一轮
-	params := ptypes.GameStartReq{Round: round + 1}
+	// 开奖之后，创建新一轮的游戏
+	start(round+1, rpcLaddr)
+}
+
+func luckDraw(round int64, rpcLaddr string) {
+	params := ptypes.GameDrawReq{Round: round}
 
 	var res string
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DStartTx", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DLuckyDrawTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -153,6 +171,7 @@ func roundCheck(round int64, info *ptypes.RoundInfo) bool {
 func remainTimeCheck(info *ptypes.RoundInfo, interval *time.Duration) bool {
 	currentTime := time.Now().Unix()
 	remainTime := info.RemainTime + info.UpdateTime - currentTime
+	fmt.Println("Remain time is :", remainTime)
 
 	if remainTime > 600 {
 		*interval = 600
@@ -193,8 +212,7 @@ func buyKeys(cmd *cobra.Command, args []string) {
 }
 
 func addNumberFlags(cmd *cobra.Command) {
-	cmd.Flags().Int64P("num", "n", 0, "the number of keys that you want to buy.")
-	cmd.MarkFlagRequired("num")
+	cmd.Flags().Int64P("num", "n", 1, "the number of keys that you want to buy.")
 }
 
 func recordInfoCmd() *cobra.Command {

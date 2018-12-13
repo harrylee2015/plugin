@@ -77,7 +77,7 @@ func SetConfig(config *Config) {
 
 	// 一把钥匙延长的游戏时间（单位：秒）
 	keyTime := config.GetKeyIncrTime()
-	if validTime(lifeTime) {
+	if validTime(keyTime) {
 		f3dTimeKey = keyTime
 	}
 
@@ -93,7 +93,7 @@ func SetConfig(config *Config) {
 		f3dKeyPriceIncr = keyPriceIncr
 	}
 
-	// start Key price  o.1 token
+	// start Key price  0.1 token
 	keyStartPrice := config.GetStartKeyPrice()
 	if keyStartPrice > 0 {
 		f3dKeyPriceStart = keyStartPrice
