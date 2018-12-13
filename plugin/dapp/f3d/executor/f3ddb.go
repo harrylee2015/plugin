@@ -463,21 +463,21 @@ func getF3dRoundInfo(db dbm.KV, key []byte) (*pt.RoundInfo, error) {
 
 }
 
-func getF3dRoundsInfo(db dbm.KV, keys [][]byte) (*pt.RoundsInfo, error) {
+func getF3dRoundsInfo(db dbm.KV, keys [][]byte) (*pt.ReplyF3DList, error) {
 	value, err := db.BatchGet(keys)
 	if err != nil {
 		flog.Error("F3D db getF3dRoundsInfo", "can't get value from db, keys:", keys, "err", err.Error())
 		return nil, err
 	}
 
-	var infos pt.RoundsInfo
+	var infos pt.ReplyF3DList
 	for _, val := range value {
 		var info pt.RoundInfo
 		err = types.Decode(val, &info)
 		if err != nil {
 			continue
 		}
-		infos.RoundsInfo = append(infos.RoundsInfo, &info)
+		infos.Rounds = append(infos.Rounds, &info)
 	}
 	return &infos, nil
 }

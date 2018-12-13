@@ -103,7 +103,10 @@ func luckyDraw(cmd *cobra.Command, args []string) {
 	var interval time.Duration
 	for {
 		roundInfo := getLastRoundInfo(rpcLaddr)
-		if remainTimeCheck(round, roundInfo, &interval) {
+		if !roundCheck(round, roundInfo) {
+			return
+		}
+		if remainTimeCheck(roundInfo, &interval) {
 			fmt.Println("Begin to luckydraw, time:", time.Now().Unix())
 			params := ptypes.GameDrawReq{Round: round}
 
@@ -117,6 +120,12 @@ func luckyDraw(cmd *cobra.Command, args []string) {
 		continue
 	}
 	//}()
+	// 开启新一轮
+	params := ptypes.GameStartReq{Round: round + 1}
+
+	var res string
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "f3d.F3DStartTx", params, &res)
+	ctx.RunWithoutMarshal()
 }
 
 func getLastRoundInfo(rpcAddr string) *ptypes.RoundInfo {
@@ -134,12 +143,14 @@ func getLastRoundInfo(rpcAddr string) *ptypes.RoundInfo {
 	return resp.(*ptypes.RoundInfo)
 }
 
-func remainTimeCheck(round int64, info *ptypes.RoundInfo, interval *time.Duration) bool {
-	if round != info.Round {
-
-		return false
+func roundCheck(round int64, info *ptypes.RoundInfo) bool {
+	if round > 0 && round == info.Round {
+		return true
 	}
+	return false
+}
 
+func remainTimeCheck(info *ptypes.RoundInfo, interval *time.Duration) bool {
 	currentTime := time.Now().Unix()
 	remainTime := info.RemainTime + info.UpdateTime - currentTime
 
@@ -182,8 +193,8 @@ func buyKeys(cmd *cobra.Command, args []string) {
 }
 
 func addNumberFlags(cmd *cobra.Command) {
-	cmd.Flags().Int64P("number", "n", 0, "the number of keys that you want to buy.")
-	cmd.MarkFlagRequired("number")
+	cmd.Flags().Int64P("num", "n", 0, "the number of keys that you want to buy.")
+	cmd.MarkFlagRequired("num")
 }
 
 func recordInfoCmd() *cobra.Command {
@@ -299,8 +310,6 @@ func lastRoundInfoQuery(cmd *cobra.Command, args []string) {
 
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()
-
-	fmt.Println(resp.(*ptypes.RoundInfo).RemainTime)
 }
 
 func buyRecordInfoQuery(cmd *cobra.Command, args []string) {
