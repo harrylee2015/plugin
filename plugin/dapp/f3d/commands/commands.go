@@ -55,7 +55,6 @@ func F3DInfoCmd() *cobra.Command {
 		roundsInfoCmd(),
 		lastRoundInfoCmd(),
 		addrInfoCmd(),
-		keyInfoCmd(),
 	)
 	return cmd
 }
