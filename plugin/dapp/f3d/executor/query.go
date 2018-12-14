@@ -19,6 +19,10 @@ func (f *f3d) Query_QueryRoundInfoByRound(in *pt.QueryF3DByRound) (types.Message
 	return queryList(f.GetLocalDB(), f.GetStateDB(), in)
 }
 
+func (f *f3d) Query_QueryRoundsInfoByRounds(in *pt.QueryF3DListByRound) (types.Message, error) {
+	return queryList(f.GetLocalDB(), f.GetStateDB(), in)
+}
+
 func (f *f3d) Query_QueryKeyCountByRoundAndAddr(in *pt.QueryKeyCountByRoundAndAddr) (types.Message, error) {
 	return queryList(f.GetLocalDB(), f.GetStateDB(), in)
 }

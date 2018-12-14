@@ -26,6 +26,10 @@ message RoundInfo {
     int64 updateTime = 11;
 }
 
+message RoundsInfo {
+    repeated RoundInfo roundsInfo = 1;
+}
+
 message KeyInfo {
     // 游戏轮次  (是由系统合约填写后存储）
     int64 round = 1;
@@ -45,7 +49,7 @@ message KeyInfo {
     //买票的txHash
     string buyKeyTxHash = 6;
 
-    int64  index  = 7;
+    int64 index = 7;
 
 }
 
@@ -80,7 +84,7 @@ message QueryF3dByRound {
     int64 round = 1;
 }
 
-message QueryF3dLastRound{
+message QueryF3dLastRound {
 
 }
 
@@ -125,16 +129,16 @@ message F3dRecord {
 }
 message F3dStartRound {
     //round
-    int64  round = 1;
+    int64 round = 1;
 }
 message F3dDrawRound {
     //round
-    int64  round = 1;
+    int64 round = 1;
 }
 message F3dBuyRecord {
     int64 round = 1;
     string addr = 2;
-    int64  index = 3;
+    int64 index = 3;
 }
 //f3d round查询返回数据 
 message ReplyF3dList {
@@ -162,19 +166,19 @@ message ReplyAddrInfoList {
     repeated AddrInfo addrInfoList = 1;
 }
 message AddrInfo {
-    string addr  = 1;
-    int64  keyNum = 2;
-    int64  buyCount = 3;
-    int64  round = 4;
+    string addr = 1;
+    int64 keyNum = 2;
+    int64 buyCount = 3;
+    int64 round = 4;
 }
 //合约内部日志记录，待补全
 message ReceiptF3d {
     string addr = 1;
-    int64  round = 2;
-    int64  index  = 3;
-    int64  action = 4;
-    int64  buyCount = 5;
-    int64  keyNum = 6;  //totoal num
+    int64 round = 2;
+    int64 index = 3;
+    int64 action = 4;
+    int64 buyCount = 5;
+    int64 keyNum = 6; //totoal num
 }
 
 message Config {
@@ -188,7 +192,8 @@ message Config {
     int64 keyIncrTime = 8;
     int64 maxkeyIncrTime = 9;
     int64 nouserDecrTime = 10;
-    float startKeyPrice = 11;
-    float incrKeyPrice = 12;
-} 
+    int64 drawDelayTime = 11;
+    float startKeyPrice = 12;
+    float incrKeyPrice = 13;
+}
 

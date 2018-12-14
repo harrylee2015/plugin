@@ -33,6 +33,9 @@ var (
 	// 一次购买钥匙最多延长的游戏时间（单位：秒）
 	f3dTimeMaxkey = int64(300)
 
+	// 延迟开奖时间 (单位：秒）
+	f3dTimeDeplay = int64(8)
+
 	// 钥匙涨价幅度（下一个人购买钥匙时在上一把钥匙基础上浮动幅度百分比），范围1-100
 	f3dKeyPriceIncr = float32(0.1)
 
@@ -55,25 +58,17 @@ func SetConfig(config *Config) {
 
 	// 赢家获取的奖金百分比
 	winnerBonus := config.GetWinnerBonus()
-	if validPercent(winnerBonus) {
-		f3dBonusWinner = winnerBonus
-	}
-
 	// 用户持有key分红百分比
 	keyBonus := config.GetKeyBonus()
-	if validPercent(keyBonus) {
-		f3dBonusKey = keyBonus
-	}
-
 	// 滚动到下期奖金池百分比
 	poolBonus := config.GetPoolBonus()
-	if validPercent(poolBonus) {
-		f3dBonusPool = poolBonus
-	}
-
 	// 平台运营及开发者费用百分比
 	developBonus := config.GetDeveloperBonus()
-	if validPercent(developBonus) {
+
+	if validSum(winnerBonus, keyBonus, poolBonus, developBonus) {
+		f3dBonusWinner = winnerBonus
+		f3dBonusKey = keyBonus
+		f3dBonusPool = poolBonus
 		f3dBonusDeveloper = developBonus
 	}
 
@@ -95,13 +90,19 @@ func SetConfig(config *Config) {
 		f3dTimeMaxkey = keyMaxTime
 	}
 
+	// 开奖延迟时间
+	delayTime := config.GetDrawDelayTime()
+	if validTime(delayTime) {
+		f3dTimeDeplay = delayTime
+	}
+
 	// 钥匙涨价幅度（下一个人购买钥匙时在上一把钥匙基础上浮动幅度百分比），范围1-100
 	keyPriceIncr := config.GetIncrKeyPrice()
 	if validPercent(keyPriceIncr) {
 		f3dKeyPriceIncr = keyPriceIncr
 	}
 
-	// start Key price  o.1 token
+	// start Key price  0.1 token
 	keyStartPrice := config.GetStartKeyPrice()
 	if keyStartPrice > 0 {
 		f3dKeyPriceStart = keyStartPrice
@@ -144,6 +145,10 @@ func GetF3dTimeMaxkey() int64 {
 	return f3dTimeMaxkey
 }
 
+func GetF3dTimeDelay() int64 {
+	return f3dTimeDeplay
+}
+
 func GetF3dKeyPriceIncr() float32 {
 	return f3dKeyPriceIncr
 }
@@ -171,4 +176,21 @@ func validTime(time int64) bool {
 		return true
 	}
 	return false
+}
+
+func validSum(vals ...float32) bool {
+	sum := float32(0)
+	for _, val := range vals {
+		if validPercent(val) {
+			sum += val
+		} else {
+			return false
+		}
+	}
+
+	if sum == 1 {
+		return true
+	} else {
+		return false
+	}
 }

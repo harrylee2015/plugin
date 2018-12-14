@@ -30,6 +30,7 @@ const (
 const (
 	FuncNameQueryLastRoundInfo           = "QueryLastRoundInfo"
 	FuncNameQueryRoundInfoByRound        = "QueryRoundInfoByRound"
+	FuncNameQueryRoundsInfoByRounds      = "QueryRoundsInfoByRounds"
 	FuncNameQueryKeyCountByRoundAndAddr  = "QueryKeyCountByRoundAndAddr"
 	FuncNameQueryBuyRecordByRoundAndAddr = "QueryBuyRecordByRoundAndAddr"
 )
