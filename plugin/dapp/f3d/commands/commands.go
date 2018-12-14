@@ -54,6 +54,8 @@ func F3DInfoCmd() *cobra.Command {
 		roundInfoCmd(),
 		roundsInfoCmd(),
 		lastRoundInfoCmd(),
+		addrInfoCmd(),
+		keyInfoCmd(),
 	)
 	return cmd
 }
@@ -254,10 +256,10 @@ func roundsInfoCmd() *cobra.Command {
 
 func addRoundsInfoQueryFlag(cmd *cobra.Command) {
 	cmd.Flags().Int64P("startRound", "s", 0, "start round")
-	cmd.Flags().Int32P("direction", "d", 0, "query direction, 0: desc  1:asc")
+	cmd.Flags().Int32P("direction", "d", 1, "query direction, 0: desc  1:asc")
 	cmd.Flags().Int32P("count", "c", 0, "query amount")
 
-	cmd.MarkFlagRequired("start round")
+	cmd.MarkFlagRequired("startRound")
 }
 
 func lastRoundInfoCmd() *cobra.Command {
@@ -268,6 +270,25 @@ func lastRoundInfoCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func addrInfoCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "addr info",
+		Short: "Show addr info.",
+		Run:   addrInfoQuery,
+	}
+
+	addAddrInfoQueryFlags(cmd)
+	return cmd
+}
+
+func addAddrInfoQueryFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "addr info")
+	cmd.Flags().Int64P("round", "r", 0, "round info")
+
+	cmd.MarkFlagRequired("addr")
+	cmd.MarkFlagRequired("round")
 }
 
 func roundInfoQuery(cmd *cobra.Command, args []string) {
@@ -352,3 +373,25 @@ func buyRecordInfoQuery(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()
 }
+
+func addrInfoQuery(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	round, _ := cmd.Flags().GetInt64("round")
+	addr, _ := cmd.Flags().GetString("addr")
+
+	var params rpctypes.Query4Jrpc
+	var resp interface{}
+
+	params.Execer = ptypes.F3DX
+	req := ptypes.QueryKeyCountByRoundAndAddr{
+		Round: round,
+		Addr:  addr,
+	}
+	params.FuncName = ptypes.FuncNameQueryKeyCountByRoundAndAddr
+	params.Payload = types.MustPBToJSON(&req)
+	resp = &ptypes.AddrInfo{}
+
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
+	ctx.Run()
+}
+
