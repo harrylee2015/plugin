@@ -52,7 +52,7 @@ func F3DInfoCmd() *cobra.Command {
 	cmd.AddCommand(
 		recordInfoCmd(),
 		roundInfoCmd(),
-		roundsInfoCmd(),
+		//roundsInfoCmd(),
 		lastRoundInfoCmd(),
 		addrInfoCmd(),
 	)
@@ -125,7 +125,7 @@ func runLuckyDraw(cmd *cobra.Command, args []string) {
 				return
 			}
 			if remainTimeCheck(roundInfo, &interval) {
-				fmt.Println("Begin to luckydraw, time:", time.Now().Unix())
+				time.Sleep(time.Duration(ptypes.GetF3dTimeDelay()) * time.Second)
 				luckDraw(round, rpcLaddr)
 				break
 			}
@@ -136,6 +136,7 @@ func runLuckyDraw(cmd *cobra.Command, args []string) {
 		//}()
 	}
 	// 开奖之后，创建新一轮的游戏
+	time.Sleep(time.Duration(ptypes.GetF3dTimeDelay()) * time.Second)
 	start(round+1, rpcLaddr)
 }
 
@@ -243,23 +244,23 @@ func roundInfoCmd() *cobra.Command {
 	return cmd
 }
 
-func roundsInfoCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "rounds",
-		Short: "Show the round info matched by round.",
-		Run:   roundsInfoQuery,
-	}
-	addRoundsInfoQueryFlag(cmd)
-	return cmd
-}
+//func roundsInfoCmd() *cobra.Command {
+//	cmd := &cobra.Command{
+//		Use:   "rounds",
+//		Short: "Show the round info matched by round.",
+//		Run:   roundsInfoQuery,
+//	}
+//	addRoundsInfoQueryFlag(cmd)
+//	return cmd
+//}
 
-func addRoundsInfoQueryFlag(cmd *cobra.Command) {
-	cmd.Flags().Int64P("startRound", "s", 0, "start round")
-	cmd.Flags().Int32P("direction", "d", 1, "query direction, 0: desc  1:asc")
-	cmd.Flags().Int32P("count", "c", 0, "query amount")
-
-	cmd.MarkFlagRequired("startRound")
-}
+//func addRoundsInfoQueryFlag(cmd *cobra.Command) {
+//	cmd.Flags().Int64P("startRound", "s", 0, "start round")
+//	cmd.Flags().Int32P("direction", "d", 1, "query direction, 0: desc  1:asc")
+//	cmd.Flags().Int32P("count", "c", 0, "query amount")
+//
+//	cmd.MarkFlagRequired("startRound")
+//}
 
 func lastRoundInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -311,28 +312,28 @@ func roundInfoQuery(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-func roundsInfoQuery(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	startRound, _ := cmd.Flags().GetInt64("startRound")
-	direction, _ := cmd.Flags().GetInt32("direction")
-	count, _ := cmd.Flags().GetInt32("count")
-
-	var params rpctypes.Query4Jrpc
-	var resp interface{}
-
-	params.Execer = ptypes.F3DX
-	req := ptypes.QueryF3DListByRound{
-		StartRound: startRound,
-		Direction:  direction,
-		Count:      count,
-	}
-	params.FuncName = ptypes.FuncNameQueryRoundsInfoByRounds
-	params.Payload = types.MustPBToJSON(&req)
-	resp = &ptypes.ReplyF3DList{}
-
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
-	ctx.Run()
-}
+//func roundsInfoQuery(cmd *cobra.Command, args []string) {
+//	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+//	startRound, _ := cmd.Flags().GetInt64("startRound")
+//	direction, _ := cmd.Flags().GetInt32("direction")
+//	count, _ := cmd.Flags().GetInt32("count")
+//
+//	var params rpctypes.Query4Jrpc
+//	var resp interface{}
+//
+//	params.Execer = ptypes.F3DX
+//	req := ptypes.QueryF3DListByRound{
+//		StartRound: startRound,
+//		Direction:  direction,
+//		Count:      count,
+//	}
+//	params.FuncName = ptypes.FuncNameQueryRoundsInfoByRounds
+//	params.Payload = types.MustPBToJSON(&req)
+//	resp = &ptypes.ReplyF3DList{}
+//
+//	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
+//	ctx.Run()
+//}
 
 func lastRoundInfoQuery(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
@@ -393,4 +394,3 @@ func addrInfoQuery(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, resp)
 	ctx.Run()
 }
-

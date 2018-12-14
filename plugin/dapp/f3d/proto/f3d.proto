@@ -192,7 +192,8 @@ message Config {
     int64 keyIncrTime = 8;
     int64 maxkeyIncrTime = 9;
     int64 nouserDecrTime = 10;
-    float startKeyPrice = 11;
-    float incrKeyPrice = 12;
+    int64 drawDelayTime = 11;
+    float startKeyPrice = 12;
+    float incrKeyPrice = 13;
 }
 

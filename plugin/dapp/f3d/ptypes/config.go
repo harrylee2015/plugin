@@ -33,6 +33,9 @@ var (
 	// 一次购买钥匙最多延长的游戏时间（单位：秒）
 	f3dTimeMaxkey = int64(300)
 
+	// 延迟开奖时间 (单位：秒）
+	f3dTimeDeplay = int64(8)
+
 	// 钥匙涨价幅度（下一个人购买钥匙时在上一把钥匙基础上浮动幅度百分比），范围1-100
 	f3dKeyPriceIncr = float32(0.1)
 
@@ -87,6 +90,12 @@ func SetConfig(config *Config) {
 		f3dTimeMaxkey = keyMaxTime
 	}
 
+	// 开奖延迟时间
+	delayTime := config.GetDrawDelayTime()
+	if validTime(delayTime) {
+		f3dTimeDeplay = delayTime
+	}
+
 	// 钥匙涨价幅度（下一个人购买钥匙时在上一把钥匙基础上浮动幅度百分比），范围1-100
 	keyPriceIncr := config.GetIncrKeyPrice()
 	if validPercent(keyPriceIncr) {
@@ -134,6 +143,10 @@ func GetF3dTimeKey() int64 {
 
 func GetF3dTimeMaxkey() int64 {
 	return f3dTimeMaxkey
+}
+
+func GetF3dTimeDelay() int64 {
+	return f3dTimeDeplay
 }
 
 func GetF3dKeyPriceIncr() float32 {
