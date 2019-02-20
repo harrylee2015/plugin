@@ -373,3 +373,11 @@ type CreateTx struct {
 	ExecName    string `json:"execName,omitempty"` //TransferToExec and Withdraw 的执行器
 	Execer      string `json:"execer,omitempty"`   //执行器名称
 }
+
+// ReWriteRawTx parameter
+type ReWriteRawTx struct {
+	Tx     string `json:"tx"`
+	To     string `json:"to"`
+	Fee    int64  `json:"fee"`
+	Expire string `json:"expire"`
+}

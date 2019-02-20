@@ -28,6 +28,7 @@ func PokerBullCmd() *cobra.Command {
 		PokerBullContinueRawTxCmd(),
 		PokerBullQuitRawTxCmd(),
 		PokerBullQueryResultRawTxCmd(),
+		PokerBullPlayRawTxCmd(),
 	)
 
 	return cmd
@@ -45,7 +46,7 @@ func PokerBullStartRawTxCmd() *cobra.Command {
 }
 
 func addPokerbullStartFlags(cmd *cobra.Command) {
-	cmd.Flags().Uint64P("value", "a", 0, "value")
+	cmd.Flags().Uint64P("value", "v", 0, "value")
 	cmd.MarkFlagRequired("value")
 
 	cmd.Flags().Uint32P("playerCount", "p", 0, "player count")
@@ -121,8 +122,56 @@ func pokerbullQuit(cmd *cobra.Command, args []string) {
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     types.ExecName(pkt.PokerBullX),
-		ActionName: pkt.CreatequitTx,
+		ActionName: pkt.CreateQuitTx,
 		Payload:    []byte(fmt.Sprintf("{\"gameId\":\"%s\"}", gameID)),
+	}
+
+	var res string
+	ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, &res)
+	ctx.RunWithoutMarshal()
+}
+
+// PokerBullPlayRawTxCmd 生成已匹配玩家游戏命令行
+func PokerBullPlayRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "play",
+		Short: "Play game",
+		Run:   pokerbullPlay,
+	}
+	addPokerbullPlayFlags(cmd)
+	return cmd
+}
+
+func addPokerbullPlayFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("gameID", "g", "", "game ID")
+	cmd.MarkFlagRequired("gameID")
+	cmd.Flags().Uint32P("round", "r", 0, "round")
+	cmd.MarkFlagRequired("round")
+	cmd.Flags().Uint64P("value", "v", 0, "value")
+	cmd.MarkFlagRequired("value")
+	cmd.Flags().StringArrayP("address", "a", nil, "address")
+	cmd.MarkFlagRequired("address")
+}
+
+func pokerbullPlay(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	gameID, _ := cmd.Flags().GetString("gameID")
+	round, _ := cmd.Flags().GetUint32("round")
+	value, _ := cmd.Flags().GetUint64("value")
+	address, _ := cmd.Flags().GetStringArray("address")
+
+	payload := &pkt.PBGamePlay{
+		GameId: gameID,
+		Value:  int64(value) * types.Coin,
+		Round:  int32(round),
+	}
+	payload.Address = make([]string, len(address))
+	copy(payload.Address, address)
+
+	params := &rpctypes.CreateTxIn{
+		Execer:     types.ExecName(pkt.PokerBullX),
+		ActionName: pkt.CreatePlayTx,
+		Payload:    types.MustPBToJSON(payload),
 	}
 
 	var res string
@@ -155,9 +204,7 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 	gameID, _ := cmd.Flags().GetString("gameID")
 	address, _ := cmd.Flags().GetString("address")
 	statusStr, _ := cmd.Flags().GetString("status")
-	status, _ := strconv.ParseInt(statusStr, 10, 32)
 	indexstr, _ := cmd.Flags().GetString("index")
-	index, _ := strconv.ParseInt(indexstr, 10, 64)
 	gameIDs, _ := cmd.Flags().GetString("gameIDs")
 	round, _ := cmd.Flags().GetString("round")
 
@@ -166,13 +213,21 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 	req := &pkt.QueryPBGameInfo{
 		GameId: gameID,
 		Addr:   address,
-		Status: int32(status),
-		Index:  index,
 	}
-	params.Payload = types.MustPBToJSON(req)
+	if indexstr != "" {
+		index, err := strconv.ParseInt(indexstr, 10, 64)
+		if err != nil {
+			fmt.Println(err)
+			cmd.Help()
+			return
+		}
+		req.Index = index
+	}
+
 	if gameID != "" {
 		if round == "" {
 			params.FuncName = pkt.FuncNameQueryGameByID
+			params.Payload = types.MustPBToJSON(req)
 			var res pkt.ReplyPBGame
 			ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 			ctx.Run()
@@ -194,11 +249,20 @@ func pokerbullQuery(cmd *cobra.Command, args []string) {
 		}
 	} else if address != "" {
 		params.FuncName = pkt.FuncNameQueryGameByAddr
+		params.Payload = types.MustPBToJSON(req)
 		var res pkt.PBGameRecords
 		ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 		ctx.Run()
 	} else if statusStr != "" {
+		status, err := strconv.ParseInt(statusStr, 10, 32)
+		if err != nil {
+			fmt.Println(err)
+			cmd.Help()
+			return
+		}
+		req.Status = int32(status)
 		params.FuncName = pkt.FuncNameQueryGameByStatus
+		params.Payload = types.MustPBToJSON(req)
 		var res pkt.PBGameRecords
 		ctx := jsonrpc.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 		ctx.Run()

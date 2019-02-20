@@ -5,11 +5,14 @@
 package executor
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/system/dapp"
@@ -110,22 +113,23 @@ func getSellOrderFromID(sellID []byte, db dbm.KV) (*pty.SellOrder, error) {
 	return &sellOrder, nil
 }
 
-func getTx(txHash []byte, db dbm.KV) (*types.TxResult, error) {
+func getTx(txHash []byte, db dbm.KV, api client.QueueProtocolAPI) (*types.TxResult, error) {
 	hash, err := common.FromHex(string(txHash))
 	if err != nil {
 		return nil, err
 	}
-	value, err := db.Get(hash)
+	value, err := api.QueryTx(&types.ReqHash{Hash: hash})
 	if err != nil {
 		tradelog.Error("getTx", "Failed to get value from db with getTx", string(txHash))
 		return nil, err
 	}
-	var txResult types.TxResult
-	err = types.Decode(value, &txResult)
-
-	if err != nil {
-		tradelog.Error("getTx", "Failed to decode TxResult", string(txHash))
-		return nil, err
+	txResult := types.TxResult{
+		Height:      value.Height,
+		Index:       int32(value.Index),
+		Tx:          value.Tx,
+		Receiptdate: value.Receipt,
+		Blocktime:   value.Blocktime,
+		ActionName:  value.ActionName,
 	}
 	return &txResult, nil
 }
@@ -245,7 +249,7 @@ type tradeAction struct {
 }
 
 func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
-	hash := common.Bytes2Hex(tx.Hash())
+	hash := hex.EncodeToString(tx.Hash())
 	fromaddr := tx.From()
 	return &tradeAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
@@ -302,7 +306,7 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 }
 
 func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, error) {
-	if buyOrder.BoardlotCnt < 0 {
+	if buyOrder.BoardlotCnt < 0 || !strings.HasPrefix(buyOrder.SellID, sellIDPrefix) {
 		return nil, types.ErrInvalidParam
 	}
 
@@ -372,6 +376,9 @@ func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, 
 }
 
 func (action *tradeAction) tradeRevokeSell(revoke *pty.TradeForRevokeSell) (*types.Receipt, error) {
+	if !strings.HasPrefix(revoke.SellID, sellIDPrefix) {
+		return nil, types.ErrInvalidParam
+	}
 	sellidByte := []byte(revoke.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
@@ -483,13 +490,14 @@ func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Rece
 }
 
 func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*types.Receipt, error) {
-	if sellOrder.BoardlotCnt < 0 {
+	if sellOrder.BoardlotCnt < 0 || !strings.HasPrefix(sellOrder.BuyID, buyIDPrefix) {
 		return nil, types.ErrInvalidParam
 	}
 
 	idByte := []byte(sellOrder.BuyID)
 	buyOrder, err := getBuyOrderFromID(idByte, action.db)
 	if err != nil {
+		tradelog.Error("getBuyOrderFromID failed", "err", err)
 		return nil, pty.ErrTBuyOrderNotExist
 	}
 
@@ -506,6 +514,7 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 	// 打token
 	accDB, err := createAccountDB(action.height, action.db, buyOrder.AssetExec, buyOrder.TokenSymbol)
 	if err != nil {
+		tradelog.Error("createAccountDB failed", "err", err, "order", buyOrder)
 		return nil, err
 	}
 	amountToken := sellOrder.BoardlotCnt * buyOrder.AmountPerBoardlot
@@ -553,6 +562,9 @@ func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*
 }
 
 func (action *tradeAction) tradeRevokeBuyLimit(revoke *pty.TradeForRevokeBuy) (*types.Receipt, error) {
+	if !strings.HasPrefix(revoke.BuyID, buyIDPrefix) {
+		return nil, types.ErrInvalidParam
+	}
 	buyIDByte := []byte(revoke.BuyID)
 	buyOrder, err := getBuyOrderFromID(buyIDByte, action.db)
 	if err != nil {

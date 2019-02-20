@@ -124,8 +124,19 @@ func TestProtoToJson(t *testing.T) {
 	assert.Equal(t, dr.Msg, []byte("OK"))
 
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"4f4b"}`, &dr)
+	assert.Equal(t, err, jsonpb.ErrBytesFormat)
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"0x"}`, &dr)
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Msg, []byte(""))
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://OK"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte("OK"))
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"str://0"}`, &dr)
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Msg, []byte("0"))
 
 	r = &Reply{Msg: []byte{}}
 	b, err = json.Marshal(r)
@@ -140,6 +151,30 @@ func TestProtoToJson(t *testing.T) {
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":""}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte{})
+}
+
+func TestJsonpbUTF8(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSONUTF8(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"OK"}`))
+
+	var newreply Reply
+	err = JSONToPBUTF8(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
+}
+
+func TestJsonpb(t *testing.T) {
+	r := &Reply{Msg: []byte("OK")}
+	b, err := PBToJSON(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{"isOk":false,"msg":"0x4f4b"}`))
+
+	var newreply Reply
+	err = JSONToPB(b, &newreply)
+	assert.Nil(t, err)
+	assert.Equal(t, r, &newreply)
 }
 
 func TestHex(t *testing.T) {
@@ -262,7 +297,6 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 
 	value := Encode(acc)
 
-	fmt.Println("TestIterateCallBack_PrefixWithoutExecAddr--test case 1---")
 	bRet := reply.IterateCallBack([]byte(key), value)
 	assert.Equal(t, false, bRet)
 	assert.Equal(t, 1, len(reply.Keys))
@@ -270,7 +304,6 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	assert.Equal(t, int64(1), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithoutExecAddr--test case 2---")
 	bRet = reply.IterateCallBack([]byte(key), value)
 	assert.Equal(t, false, bRet)
 	assert.Equal(t, 2, len(reply.Keys))
@@ -278,7 +311,6 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	assert.Equal(t, int64(2), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithoutExecAddr--test case 3---")
 	key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	bRet = reply.IterateCallBack([]byte(key2), value)
 	assert.Equal(t, false, bRet)
@@ -287,7 +319,6 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	assert.Equal(t, int64(2), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithoutExecAddr--test case 4---")
 	key3 := "mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	bRet = reply.IterateCallBack([]byte(key3), value)
 	assert.Equal(t, false, bRet)
@@ -296,7 +327,6 @@ func TestIterateCallBack_PrefixWithoutExecAddr(t *testing.T) {
 	assert.Equal(t, int64(3), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithoutExecAddr--test case 5---")
 	reply.Count = int64(4)
 
 	bRet = reply.IterateCallBack([]byte(key3), value)
@@ -331,7 +361,6 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 
 	value := Encode(acc)
 
-	fmt.Println("TestIterateCallBack_PrefixWithExecAddr--test case 1---")
 	key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	bRet := reply.IterateCallBack([]byte(key2), value)
 	assert.Equal(t, false, bRet)
@@ -340,7 +369,6 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, int64(0), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithExecAddr--test case 2---")
 	bRet = reply.IterateCallBack([]byte(key), value)
 	assert.Equal(t, true, bRet)
 	assert.Equal(t, 1, len(reply.Keys))
@@ -348,7 +376,6 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, int64(1), reply.Num)
 	assert.Equal(t, len(key), len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithExecAddr--test case 3---")
 	//key2 := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:2JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	reply.NextKey = nil
 	reply.Count = int64(2)
@@ -359,7 +386,6 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, int64(1), reply.Num)
 	assert.Equal(t, 0, len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithExecAddr--test case 4---")
 	reply.NextKey = nil
 	key3 := "mavl-coins-bty-exec-26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	bRet = reply.IterateCallBack([]byte(key3), value)
@@ -369,7 +395,6 @@ func TestIterateCallBack_PrefixWithExecAddr(t *testing.T) {
 	assert.Equal(t, int64(2), reply.Num)
 	assert.Equal(t, len(key3), len(reply.NextKey))
 
-	fmt.Println("TestIterateCallBack_PrefixWithExecAddr--test case 5---")
 	bRet = reply.IterateCallBack([]byte(key), value)
 	assert.Equal(t, true, bRet)
 	assert.Equal(t, 3, len(reply.Keys))

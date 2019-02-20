@@ -24,7 +24,6 @@ func TicketCmd() *cobra.Command {
 		Short: "Ticket management",
 		Args:  cobra.MinimumNArgs(1),
 	}
-
 	cmd.AddCommand(
 		BindMinerCmd(),
 		CountTicketCmd(),
@@ -102,11 +101,17 @@ func CloseTicketCmd() *cobra.Command {
 		Short: "Close tickets",
 		Run:   closeTicket,
 	}
+	addCloseBindAddr(cmd)
 	return cmd
+}
+
+func addCloseBindAddr(cmd *cobra.Command) {
+	cmd.Flags().StringP("miner_addr", "m", "", "miner address (optional)")
 }
 
 func closeTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	bindAddr, _ := cmd.Flags().GetString("miner_addr")
 	status, err := getWalletStatus(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -119,13 +124,17 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplyHashes
+	tClose := &ty.TicketClose{
+		MinerAddress: bindAddr,
+	}
+
+	var res rpctypes.ReplyHashes
 	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = rpc.Call("ticket.CloseTickets", nil, &res)
+	err = rpc.Call("ticket.CloseTickets", tClose, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

@@ -5,18 +5,24 @@
 package types
 
 import (
+	"encoding/json"
 	"reflect"
+
+	log "github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/types"
 )
+
+var tokenlog = log.New("module", "execs.token.types")
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
 	types.RegistorExecutor(TokenX, NewType())
 	types.RegisterDappFork(TokenX, "Enable", 100899)
-	types.RegisterDappFork(TokenX, "ForkTokenBlackList", 190000)
-	types.RegisterDappFork(TokenX, "ForkBadTokenSymbol", 184000)
-	types.RegisterDappFork(TokenX, "ForkTokenPrice", 560000)
+	types.RegisterDappFork(TokenX, ForkTokenBlackListX, 190000)
+	types.RegisterDappFork(TokenX, ForkBadTokenSymbolX, 184000)
+	types.RegisterDappFork(TokenX, ForkTokenPriceX, 560000)
+	types.RegisterDappFork(TokenX, ForkTokenSymbolWithNumberX, 1298600)
 }
 
 // TokenType 执行器基类结构体
@@ -91,4 +97,29 @@ func (t *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.
 		tx.To = create.To
 	}
 	return tx, err
+}
+
+// CreateTx token 创建合约
+func (t *TokenType) CreateTx(action string, msg json.RawMessage) (*types.Transaction, error) {
+	tx, err := t.ExecTypeBase.CreateTx(action, msg)
+	if err != nil {
+		tokenlog.Error("token CreateTx failed", "err", err, "action", action, "msg", string(msg))
+		return nil, err
+	}
+	if !types.IsPara() {
+		var transfer TokenAction
+		err = types.Decode(tx.Payload, &transfer)
+		if err != nil {
+			tokenlog.Error("token CreateTx failed", "decode payload err", err, "action", action, "msg", string(msg))
+			return nil, err
+		}
+		if action == "Transfer" {
+			tx.To = transfer.GetTransfer().To
+		} else if action == "Withdraw" {
+			tx.To = transfer.GetWithdraw().To
+		} else if action == "TransferToExec" {
+			tx.To = transfer.GetTransferToExec().To
+		}
+	}
+	return tx, nil
 }

@@ -220,7 +220,7 @@ ForkResetTx0= 200000
 ForkWithdraw= 200000
 ForkExecRollback= 450000
 ForkCheckBlockTime=1200000
-ForkMultiSignAddress=1500000
+ForkMultiSignAddress=1298600
 ForkTxHeight= -1
 ForkTxGroupPara= -1
 ForkChainParamV2= -1
@@ -295,6 +295,7 @@ clean:
 	@rm -rf plugin/dapp/init
 	@rm -rf plugin/crypto/init
 	@rm -rf plugin/store/init
+	@rm -rf plugin/mempool/init
 `
 
 	// 生成 .travis.yml 文件模板
@@ -308,7 +309,7 @@ go:
 
 	// 生成 plugin/plugin.toml的文件模板
 	CpftPluginToml = `
-# type字段仅支持 consensus  dapp store
+# type字段仅支持 consensus  dapp store mempool
 [dapp-ticket]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/ticket"
 
@@ -326,6 +327,12 @@ gitrepo = "github.com/33cn/plugin/plugin/dapp/token"
 
 [dapp-trade]
 gitrepo = "github.com/33cn/plugin/plugin/dapp/trade"
+
+[mempool-price]
+gitrepo = "github.com/33cn/plugin/plugin/mempool/price"
+
+[mempool-score]
+gitrepo = "github.com/33cn/plugin/plugin/mempool/score"
 `
 	// 项目 cli/main.go 文件模板
 	CpftCliMain = `package main

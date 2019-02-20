@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/store"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/33cn/chain33/wallet"
 	"github.com/33cn/chain33/wallet/bipwallet"
@@ -79,7 +80,7 @@ func (mock *testDataMock) init() {
 func (mock *testDataMock) initMember() {
 	var q = queue.New("channel")
 	cfg, sub := testnode.GetDefaultConfig()
-
+	util.ResetDatadir(cfg, "$TEMP/")
 	wallet := wallet.New(cfg.Wallet, sub.Wallet)
 	wallet.SetQueueClient(q.Client())
 	mock.modules = append(mock.modules, wallet)
@@ -356,117 +357,6 @@ func Test_CreateUTXOs(t *testing.T) {
 	for index, testCase := range testCases {
 		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "CreateUTXOs", testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "CreateUTXOs test case index %d", index)
-	}
-}
-
-func Test_SendPublic2PrivacyTransaction(t *testing.T) {
-	mock := &testDataMock{mockMempool: true}
-	mock.init()
-	mock.enablePrivacy()
-
-	testCases := []struct {
-		req       *ty.ReqPub2Pri
-		needReply *types.Reply
-		needError error
-	}{
-		{
-			needError: types.ErrInvalidParam,
-		},
-		{
-			req: &ty.ReqPub2Pri{
-				Tokenname:  types.BTY,
-				Amount:     10 * types.Coin,
-				Sender:     testAddrs[0],
-				Pubkeypair: testPubkeyPairs[0],
-			},
-			needReply: &types.Reply{IsOk: true},
-			needError: types.ErrAddrNotExist,
-		},
-	}
-
-	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Public2Privacy", testCase.req)
-		require.Equalf(t, getErr, testCase.needError, "Publick2Privacy test case index %d", index)
-	}
-}
-
-func Test_SendPrivacy2PrivacyTransaction(t *testing.T) {
-	mock := &testDataMock{
-		mockMempool:    true,
-		mockBlockChain: true,
-	}
-	mock.init()
-	mock.enablePrivacy()
-	// 创建辅助对象
-	privacyMock := privacy.PrivacyMock{}
-	privacyMock.Init(mock.wallet, mock.password)
-	// 创建几条可用UTXO
-	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
-	mock.setBlockChainHeight(10020)
-
-	testCases := []struct {
-		req       *ty.ReqPri2Pri
-		needReply *types.Reply
-		needError error
-	}{
-		{
-			needError: types.ErrInvalidParam,
-		},
-		{
-			req: &ty.ReqPri2Pri{
-				Tokenname:  types.BTY,
-				Amount:     10 * types.Coin,
-				Sender:     testAddrs[0],
-				Pubkeypair: testPubkeyPairs[1],
-			},
-			needReply: &types.Reply{IsOk: true},
-			needError: types.ErrAddrNotExist,
-		},
-	}
-
-	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Privacy2Privacy", testCase.req)
-		require.Equalf(t, getErr, testCase.needError, "Privacy2Privacy test case index %d", index)
-	}
-}
-
-func Test_SendPrivacy2PublicTransaction(t *testing.T) {
-	mock := &testDataMock{
-		mockMempool:    true,
-		mockBlockChain: true,
-	}
-	mock.init()
-	mock.enablePrivacy()
-	// 创建辅助对象
-	privacyMock := privacy.PrivacyMock{}
-	privacyMock.Init(mock.wallet, mock.password)
-	// 创建几条可用UTXO
-	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
-	mock.setBlockChainHeight(10020)
-
-	testCases := []struct {
-		req       *ty.ReqPri2Pub
-		needReply *types.Reply
-		needError error
-	}{
-		{
-			needError: types.ErrInvalidParam,
-		},
-		{
-			req: &ty.ReqPri2Pub{
-				Tokenname: types.BTY,
-				Amount:    10 * types.Coin,
-				Sender:    testAddrs[0],
-				Receiver:  testAddrs[0],
-			},
-			needReply: &types.Reply{IsOk: true},
-			needError: types.ErrAddrNotExist,
-		},
-	}
-
-	for index, testCase := range testCases {
-		_, getErr := mock.wallet.GetAPI().ExecWalletFunc(ty.PrivacyX, "Privacy2Public", testCase.req)
-		require.Equalf(t, getErr, testCase.needError, "Privacy2Public test case index %d", index)
 	}
 }
 
