@@ -170,6 +170,8 @@ message AddrInfo {
     int64 keyNum = 2;
     int64 buyCount = 3;
     int64 round = 4;
+    float totalCost = 5;
+    float bonus = 6;
 }
 //合约内部日志记录，待补全
 message ReceiptF3d {

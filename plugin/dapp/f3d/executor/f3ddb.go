@@ -115,6 +115,7 @@ func (action *Action) GetKVSet(param interface{}) (kvset []*types.KeyValue, resu
 			addr.KeyNum = keyInfo.KeyNum
 			addr.BuyCount = 1
 			addr.Round = keyInfo.Round
+			addr.TotalCost = float32(keyInfo.KeyNum) * keyInfo.KeyPrice
 			value := types.Encode(&addr)
 			action.db.Set(Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), value)
 			kvset = append(kvset, &types.KeyValue{Key: Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), Value: value})
@@ -124,12 +125,19 @@ func (action *Action) GetKVSet(param interface{}) (kvset []*types.KeyValue, resu
 			addrInfo.BuyCount = addrInfo.BuyCount + 1
 			addrInfo.Round = keyInfo.Round
 			addrInfo.KeyNum = addrInfo.KeyNum + keyInfo.KeyNum
+			addrInfo.TotalCost = addrInfo.TotalCost + float32(keyInfo.KeyNum)*keyInfo.KeyPrice
 			value := types.Encode(addrInfo)
 			action.db.Set(Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), value)
 			kvset = append(kvset, &types.KeyValue{Key: Key(calcF3dUserAddrs(keyInfo.Round, keyInfo.Addr)), Value: value})
 			return kvset, addrInfo
 		}
 
+	}
+	if addrInfo, ok := param.(*pt.AddrInfo); ok {
+		value := types.Encode(addrInfo)
+		action.db.Set(Key(calcF3dUserAddrs(addrInfo.Round, addrInfo.Addr)), value)
+		kvset = append(kvset, &types.KeyValue{Key: Key(calcF3dUserAddrs(addrInfo.Round, addrInfo.Addr)), Value: value})
+		return kvset, addrInfo
 	}
 	return kvset, nil
 }
@@ -392,8 +400,10 @@ HERE:
 			var keyBonus int64
 			if info.Addr == lastRound.LastOwner {
 				keyBonus = int64(Keys * (float32(info.KeyNum-1) / float32(lastRound.KeyCount)))
+				info.Bonus = float32((keyBonus + winner) / decimal)
 			} else {
 				keyBonus = int64(Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount)))
+				info.Bonus = float32(keyBonus / decimal)
 			}
 			if keyBonus <= 0 {
 				continue
@@ -403,6 +413,8 @@ HERE:
 				flog.Error("F3dLuckyDraw.ExecTransfer", "addr", info.Addr, "execaddr", action.execaddr, "amount", keyBonus/decimal)
 				return nil, err
 			}
+			kvset, _ := action.GetKVSet(info)
+			kv = append(kv, kvset...)
 			logs = append(logs, receipt.Logs...)
 			kv = append(kv, receipt.KV...)
 		}

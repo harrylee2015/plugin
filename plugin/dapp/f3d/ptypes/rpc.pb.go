@@ -6,7 +6,7 @@ package types
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import types2 "github.com/33cn/chain33/types"
+import types "github.com/33cn/chain33/types"
 
 import (
 	context "golang.org/x/net/context"
@@ -18,14 +18,42 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type GameStartReq struct {
-	Round int64 `protobuf:"varint,1,opt,name=round" json:"round,omitempty"`
+	Round                int64    `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GameStartReq) Reset()                    { *m = GameStartReq{} }
-func (m *GameStartReq) String() string            { return proto.CompactTextString(m) }
-func (*GameStartReq) ProtoMessage()               {}
-func (*GameStartReq) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (m *GameStartReq) Reset()         { *m = GameStartReq{} }
+func (m *GameStartReq) String() string { return proto.CompactTextString(m) }
+func (*GameStartReq) ProtoMessage()    {}
+func (*GameStartReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_rpc_4ba080f2051fcf71, []int{0}
+}
+func (m *GameStartReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GameStartReq.Unmarshal(m, b)
+}
+func (m *GameStartReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GameStartReq.Marshal(b, m, deterministic)
+}
+func (dst *GameStartReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GameStartReq.Merge(dst, src)
+}
+func (m *GameStartReq) XXX_Size() int {
+	return xxx_messageInfo_GameStartReq.Size(m)
+}
+func (m *GameStartReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_GameStartReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GameStartReq proto.InternalMessageInfo
 
 func (m *GameStartReq) GetRound() int64 {
 	if m != nil {
@@ -35,13 +63,35 @@ func (m *GameStartReq) GetRound() int64 {
 }
 
 type GameDrawReq struct {
-	Round int64 `protobuf:"varint,1,opt,name=round" json:"round,omitempty"`
+	Round                int64    `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GameDrawReq) Reset()                    { *m = GameDrawReq{} }
-func (m *GameDrawReq) String() string            { return proto.CompactTextString(m) }
-func (*GameDrawReq) ProtoMessage()               {}
-func (*GameDrawReq) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (m *GameDrawReq) Reset()         { *m = GameDrawReq{} }
+func (m *GameDrawReq) String() string { return proto.CompactTextString(m) }
+func (*GameDrawReq) ProtoMessage()    {}
+func (*GameDrawReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_rpc_4ba080f2051fcf71, []int{1}
+}
+func (m *GameDrawReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GameDrawReq.Unmarshal(m, b)
+}
+func (m *GameDrawReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GameDrawReq.Marshal(b, m, deterministic)
+}
+func (dst *GameDrawReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GameDrawReq.Merge(dst, src)
+}
+func (m *GameDrawReq) XXX_Size() int {
+	return xxx_messageInfo_GameDrawReq.Size(m)
+}
+func (m *GameDrawReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_GameDrawReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GameDrawReq proto.InternalMessageInfo
 
 func (m *GameDrawReq) GetRound() int64 {
 	if m != nil {
@@ -51,13 +101,35 @@ func (m *GameDrawReq) GetRound() int64 {
 }
 
 type GameBuyKeysReq struct {
-	Num int64 `protobuf:"varint,1,opt,name=num" json:"num,omitempty"`
+	Num                  int64    `protobuf:"varint,1,opt,name=num,proto3" json:"num,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GameBuyKeysReq) Reset()                    { *m = GameBuyKeysReq{} }
-func (m *GameBuyKeysReq) String() string            { return proto.CompactTextString(m) }
-func (*GameBuyKeysReq) ProtoMessage()               {}
-func (*GameBuyKeysReq) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (m *GameBuyKeysReq) Reset()         { *m = GameBuyKeysReq{} }
+func (m *GameBuyKeysReq) String() string { return proto.CompactTextString(m) }
+func (*GameBuyKeysReq) ProtoMessage()    {}
+func (*GameBuyKeysReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_rpc_4ba080f2051fcf71, []int{2}
+}
+func (m *GameBuyKeysReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GameBuyKeysReq.Unmarshal(m, b)
+}
+func (m *GameBuyKeysReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GameBuyKeysReq.Marshal(b, m, deterministic)
+}
+func (dst *GameBuyKeysReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GameBuyKeysReq.Merge(dst, src)
+}
+func (m *GameBuyKeysReq) XXX_Size() int {
+	return xxx_messageInfo_GameBuyKeysReq.Size(m)
+}
+func (m *GameBuyKeysReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_GameBuyKeysReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GameBuyKeysReq proto.InternalMessageInfo
 
 func (m *GameBuyKeysReq) GetNum() int64 {
 	if m != nil {
@@ -67,14 +139,36 @@ func (m *GameBuyKeysReq) GetNum() int64 {
 }
 
 type KeyInfoQueryReq struct {
-	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Round int64  `protobuf:"varint,2,opt,name=round" json:"round,omitempty"`
+	Addr                 string   `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Round                int64    `protobuf:"varint,2,opt,name=round,proto3" json:"round,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *KeyInfoQueryReq) Reset()                    { *m = KeyInfoQueryReq{} }
-func (m *KeyInfoQueryReq) String() string            { return proto.CompactTextString(m) }
-func (*KeyInfoQueryReq) ProtoMessage()               {}
-func (*KeyInfoQueryReq) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
+func (m *KeyInfoQueryReq) Reset()         { *m = KeyInfoQueryReq{} }
+func (m *KeyInfoQueryReq) String() string { return proto.CompactTextString(m) }
+func (*KeyInfoQueryReq) ProtoMessage()    {}
+func (*KeyInfoQueryReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_rpc_4ba080f2051fcf71, []int{3}
+}
+func (m *KeyInfoQueryReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_KeyInfoQueryReq.Unmarshal(m, b)
+}
+func (m *KeyInfoQueryReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_KeyInfoQueryReq.Marshal(b, m, deterministic)
+}
+func (dst *KeyInfoQueryReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KeyInfoQueryReq.Merge(dst, src)
+}
+func (m *KeyInfoQueryReq) XXX_Size() int {
+	return xxx_messageInfo_KeyInfoQueryReq.Size(m)
+}
+func (m *KeyInfoQueryReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_KeyInfoQueryReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_KeyInfoQueryReq proto.InternalMessageInfo
 
 func (m *KeyInfoQueryReq) GetAddr() string {
 	if m != nil {
@@ -91,13 +185,35 @@ func (m *KeyInfoQueryReq) GetRound() int64 {
 }
 
 type RoundInfoQueryReq struct {
-	Round int64 `protobuf:"varint,1,opt,name=round" json:"round,omitempty"`
+	Round                int64    `protobuf:"varint,1,opt,name=round,proto3" json:"round,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RoundInfoQueryReq) Reset()                    { *m = RoundInfoQueryReq{} }
-func (m *RoundInfoQueryReq) String() string            { return proto.CompactTextString(m) }
-func (*RoundInfoQueryReq) ProtoMessage()               {}
-func (*RoundInfoQueryReq) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
+func (m *RoundInfoQueryReq) Reset()         { *m = RoundInfoQueryReq{} }
+func (m *RoundInfoQueryReq) String() string { return proto.CompactTextString(m) }
+func (*RoundInfoQueryReq) ProtoMessage()    {}
+func (*RoundInfoQueryReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_rpc_4ba080f2051fcf71, []int{4}
+}
+func (m *RoundInfoQueryReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RoundInfoQueryReq.Unmarshal(m, b)
+}
+func (m *RoundInfoQueryReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RoundInfoQueryReq.Marshal(b, m, deterministic)
+}
+func (dst *RoundInfoQueryReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RoundInfoQueryReq.Merge(dst, src)
+}
+func (m *RoundInfoQueryReq) XXX_Size() int {
+	return xxx_messageInfo_RoundInfoQueryReq.Size(m)
+}
+func (m *RoundInfoQueryReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_RoundInfoQueryReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RoundInfoQueryReq proto.InternalMessageInfo
 
 func (m *RoundInfoQueryReq) GetRound() int64 {
 	if m != nil {
@@ -122,12 +238,13 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for F3D service
-
+// F3DClient is the client API for F3D service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type F3DClient interface {
-	Start(ctx context.Context, in *F3DStart, opts ...grpc.CallOption) (*types2.UnsignTx, error)
-	LuckyDraw(ctx context.Context, in *F3DLuckyDraw, opts ...grpc.CallOption) (*types2.UnsignTx, error)
-	BuyKeys(ctx context.Context, in *F3DBuyKey, opts ...grpc.CallOption) (*types2.UnsignTx, error)
+	Start(ctx context.Context, in *F3DStart, opts ...grpc.CallOption) (*types.UnsignTx, error)
+	LuckyDraw(ctx context.Context, in *F3DLuckyDraw, opts ...grpc.CallOption) (*types.UnsignTx, error)
+	BuyKeys(ctx context.Context, in *F3DBuyKey, opts ...grpc.CallOption) (*types.UnsignTx, error)
 }
 
 type f3DClient struct {
@@ -138,39 +255,38 @@ func NewF3DClient(cc *grpc.ClientConn) F3DClient {
 	return &f3DClient{cc}
 }
 
-func (c *f3DClient) Start(ctx context.Context, in *F3DStart, opts ...grpc.CallOption) (*types2.UnsignTx, error) {
-	out := new(types2.UnsignTx)
-	err := grpc.Invoke(ctx, "/types.f3d/Start", in, out, c.cc, opts...)
+func (c *f3DClient) Start(ctx context.Context, in *F3DStart, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	out := new(types.UnsignTx)
+	err := c.cc.Invoke(ctx, "/types.f3d/Start", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *f3DClient) LuckyDraw(ctx context.Context, in *F3DLuckyDraw, opts ...grpc.CallOption) (*types2.UnsignTx, error) {
-	out := new(types2.UnsignTx)
-	err := grpc.Invoke(ctx, "/types.f3d/LuckyDraw", in, out, c.cc, opts...)
+func (c *f3DClient) LuckyDraw(ctx context.Context, in *F3DLuckyDraw, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	out := new(types.UnsignTx)
+	err := c.cc.Invoke(ctx, "/types.f3d/LuckyDraw", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *f3DClient) BuyKeys(ctx context.Context, in *F3DBuyKey, opts ...grpc.CallOption) (*types2.UnsignTx, error) {
-	out := new(types2.UnsignTx)
-	err := grpc.Invoke(ctx, "/types.f3d/BuyKeys", in, out, c.cc, opts...)
+func (c *f3DClient) BuyKeys(ctx context.Context, in *F3DBuyKey, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	out := new(types.UnsignTx)
+	err := c.cc.Invoke(ctx, "/types.f3d/BuyKeys", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for F3D service
-
+// F3DServer is the server API for F3D service.
 type F3DServer interface {
-	Start(context.Context, *F3DStart) (*types2.UnsignTx, error)
-	LuckyDraw(context.Context, *F3DLuckyDraw) (*types2.UnsignTx, error)
-	BuyKeys(context.Context, *F3DBuyKey) (*types2.UnsignTx, error)
+	Start(context.Context, *F3DStart) (*types.UnsignTx, error)
+	LuckyDraw(context.Context, *F3DLuckyDraw) (*types.UnsignTx, error)
+	BuyKeys(context.Context, *F3DBuyKey) (*types.UnsignTx, error)
 }
 
 func RegisterF3DServer(s *grpc.Server, srv F3DServer) {
@@ -252,9 +368,9 @@ var _F3D_serviceDesc = grpc.ServiceDesc{
 	Metadata: "rpc.proto",
 }
 
-func init() { proto.RegisterFile("rpc.proto", fileDescriptor1) }
+func init() { proto.RegisterFile("rpc.proto", fileDescriptor_rpc_4ba080f2051fcf71) }
 
-var fileDescriptor1 = []byte{
+var fileDescriptor_rpc_4ba080f2051fcf71 = []byte{
 	// 254 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x90, 0x41, 0x4b, 0xc4, 0x30,
 	0x10, 0x85, 0xad, 0xb5, 0x4a, 0x47, 0x71, 0x77, 0x47, 0x0f, 0xd2, 0x93, 0x44, 0x0f, 0x8a, 0xd0,
