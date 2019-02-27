@@ -1,0 +1,262 @@
+syntax = "proto3";
+
+package types;
+
+message PowerPurchaseRecord {
+    int64 amount = 1;
+    BallNumber number = 2;
+    int64 index  = 3;
+}
+
+message PurchaseInfo {
+    string                  addr           = 1;
+	repeated PowerPurchaseRecord records   = 2;
+	int64                   fundWin        = 3;
+    int64                   amountOneRound = 4;
+	repeated int64          prizeOneRound  = 5;
+}
+
+message Powerball {
+    string                       powerballID                = 1;
+    int32                        status                     = 2;
+    int64                        createHeight               = 3;
+    int64                        accuFund                   = 4;
+    int64                        saleFund                   = 5;
+    string                       purTime                    = 6;
+    string                       drawTime                   = 7;
+    int64                        lastTransToPurState        = 8;
+    int64                        lastTransToDrawState       = 9;
+    repeated PurchaseInfo        purInfos                   = 10;
+    int64                        totalPurchasedTxNum        = 11;
+    string                       createAddr                 = 12;
+    int64                        round                      = 13;
+    BallNumber                   luckyNumber                = 14;
+    int64                        createOnMain               = 15;
+    int64                        lastTransToPurStateOnMain  = 16;
+    int64                        lastTransToDrawStateOnMain = 17;
+    repeated PowerMissingRecord  missingRecords             = 18;
+    int64                        ticketPrice                = 19;
+    int64                        platformRatio              = 20;
+    int64                        developRatio               = 21;
+    int64                        totalAddrNum               = 22;
+}
+
+message BallNumber {
+	repeated string balls = 1;
+}
+
+message PowerMissingRecord {
+    repeated int64 times = 1;
+}
+
+message PowerballAction {
+    oneof value {
+        PowerballCreate create = 1;
+        PowerballBuy    buy    = 2;
+		PowerballPause  pause  = 3;
+        PowerballDraw   draw   = 4;
+        PowerballClose  close  = 5;
+    }
+    int32 ty = 10;
+}
+
+message PowerballCreate {
+    string purTime       = 1;
+    string drawTime      = 2;
+    int64  ticketPrice   = 3;
+    int64  platformRatio = 4;
+    int64  developRatio  = 5;
+}
+
+message PowerballBuy {
+    string     powerballID = 1;
+    int64      amount      = 2;
+    BallNumber number      = 3;
+}
+
+message PowerballPause {
+    string powerballID = 1;
+}
+
+message PowerballDraw {
+    string powerballID = 1;
+}
+
+message PowerballClose {
+    string powerballID = 1;
+}
+
+message ReceiptPowerball {
+    string               powerballID = 1;
+    int32                status      = 2;
+    int32                prevStatus  = 3;
+    string               addr        = 4;
+    int64                round       = 5;
+    BallNumber           number      = 6;
+    int64                amount      = 7;
+    BallNumber           luckyNumber = 8;
+    int64                time        = 9;
+    string               txHash      = 10;
+    PowerballUpdateBuyInfo updateInfo = 11;
+    int64                index       = 12;
+    int64                saleFund    = 13;
+    int64                totalAddrNum = 14;
+    PowerballGainInfos   gainInfos   = 15;
+    repeated PowerballPrizeInfo prizeInfo = 16;
+}
+
+message ReqPowerballInfo {
+    string powerballID = 1;
+}
+
+message ReqPowerballBuyInfo {
+    string powerballID = 1;
+    string addr      = 2;
+    int64  round     = 3;
+}
+
+message ReqPowerballBuyHistory {
+    string powerballID = 1;
+    string addr      = 2;
+    int64  round     = 3;
+    int32  count     = 4;
+    int32  direction = 5;
+    int64  index     = 6;
+}
+
+message ReqPowerballLuckyInfo {
+    string   powerballID   = 1;
+    repeated int64 round = 2;
+}
+
+message ReqPowerballLuckyHistory {
+    string powerballID = 1;
+    int64  round     = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+}
+
+message ReplyPowerballNormalInfo {
+    int64  createHeight  = 1;
+    string purTime       = 2;
+    string drawTime      = 3;
+    int64  ticketPrice   = 4;
+    int64  platformRatio = 5;
+    int64  developRatio  = 6;
+    string createAddr    = 7;
+}
+
+message ReplyPowerballCurrentInfo {
+    int32    status                       = 1;
+    int64    accuFund                     = 2;
+    int64    saleFund                     = 3;
+    int64    lastTransToPurState          = 4;
+    int64    lastTransToDrawState         = 5;
+    int64    totalPurchasedTxNum          = 6;
+    int64    round                        = 7;
+    BallNumber luckyNumber                = 8;
+    int64    lastTransToPurStateOnMain    = 9;
+    int64    lastTransToDrawStateOnMain   = 10;
+    string   purTime                      = 11;
+    string   drawTime                     = 12;
+    repeated PowerMissingRecord missingRecords = 13;
+    int64    totalAddrNum                 = 14;
+}
+
+message ReplyPowerballHistoryLuckyNumber {
+    repeated BallNumber luckyNumber = 1;
+}
+
+message ReplyPowerballShowInfo {
+    repeated PowerballBuyRecord records = 1;
+}
+
+message PowerballNumberRecord {
+    BallNumber number = 1;
+    int64 amount = 2;
+}
+
+// used for execlocal
+message PowerballBuyRecord {
+    BallNumber  number = 1;
+    int64  amount = 2;
+    int64  round  = 3;
+    int32  type   = 4;
+    int64  index  = 5;
+    int64  time   = 6;
+    string txHash = 7;
+}
+
+message PowerballBuyRecords {
+    repeated PowerballBuyRecord records = 1;
+}
+
+message PowerballDrawRecord {
+    BallNumber number = 1;
+    int64  round  = 2;
+    int64  time   = 3;
+    string txHash = 4;
+    repeated PowerballPrizeInfo info = 5;
+}
+
+message PowerballPrizeInfo {
+    int64 count = 1;
+    int64 amount = 2;
+}
+
+message PowerballDrawRecords {
+    repeated PowerballDrawRecord records = 1;
+}
+
+message PowerballUpdateRec {
+    int64 index = 1;
+    int32 type  = 2;
+}
+
+message PowerballUpdateRecs {
+    string                      addr    = 1;
+    repeated PowerballUpdateRec records = 2;
+}
+
+message PowerballUpdateBuyInfo {
+    repeated PowerballUpdateRecs updates = 1;
+}
+
+message ReplyPowerballPurchaseAddr {
+    repeated string address = 1;
+}
+
+message PowerballGainInfos{
+    repeated PowerballGainInfo gains = 1;
+}
+
+message PowerballGainInfo{
+    string  addr       = 1;
+    int64   buyAmount  = 2;
+    int64   fundAmount = 3;
+}
+
+message ReqPowerballGainInfo {
+    string powerballID = 1;
+    string addr        = 2;
+    int64  round       = 3;
+}
+
+message PowerballGainRecord{
+    string  addr       = 1;
+    int64   buyAmount  = 2;
+    int64   fundAmount = 3;
+    int64   round      = 4;
+}
+
+message PowerballGainRecords {
+    repeated PowerballGainRecord records = 1;
+}
+
+message ReqPowerballGainHistory {
+    string powerballID = 1;
+    string addr        = 2;
+    int64  round       = 3;
+    int32  count       = 4;
+    int32  direction   = 5;
+}
