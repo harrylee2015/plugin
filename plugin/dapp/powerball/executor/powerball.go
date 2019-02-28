@@ -5,6 +5,8 @@
 package executor
 
 import (
+	"fmt"
+
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -58,23 +60,31 @@ func (ball *Powerball) GetDriverName() string {
 	return pty.PowerballX
 }
 
-func (ball *Powerball) findPowerballBuyRecords(key []byte) (*pty.PowerballBuyRecords, error) {
-	count := ball.GetLocalDB().PrefixCount(key)
-	pblog.Info("findPowerballBuyRecords", "count", count)
-	values, err := ball.GetLocalDB().List(key, nil, int32(count), 0)
-	if err != nil {
-		return nil, err
-	}
-
+func (ball *Powerball) findPowerballBuyRecords(prefix []byte) (*pty.PowerballBuyRecords, error) {
+	count := 0
+	var key []byte
 	var records pty.PowerballBuyRecords
-	for _, value := range values {
-		var record pty.PowerballBuyRecord
-		err := types.Decode(value, &record)
+
+	for {
+		values, err := ball.GetLocalDB().List(prefix, key, DefultCount, 0)
 		if err != nil {
-			continue
+			return nil, err
 		}
-		records.Records = append(records.Records, &record)
+		var record pty.PowerballBuyRecord
+		for _, value := range values {
+			err := types.Decode(value, &record)
+			if err != nil {
+				continue
+			}
+			records.Records = append(records.Records, &record)
+		}
+		count += len(values)
+		if len(values) < int(DefultCount) {
+			break
+		}
+		key = []byte(fmt.Sprintf("%s:%18d", prefix, record.Index))
 	}
+	pblog.Info("findPowerballBuyRecords", "count", count)
 	return &records, nil
 }
 
