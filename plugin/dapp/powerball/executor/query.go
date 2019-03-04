@@ -46,20 +46,20 @@ func (l *Powerball) Query_GetPowerballCurrentInfo(param *pty.ReqPowerballInfo) (
 		return nil, err
 	}
 	reply := &pty.ReplyPowerballCurrentInfo{
-		Status:                     powerball.Status,
-		AccuFund:                   powerball.AccuFund,
-		SaleFund:                   powerball.SaleFund,
-		LastTransToPurState:        powerball.LastTransToPurState,
-		LastTransToDrawState:       powerball.LastTransToDrawState,
-		TotalPurchasedTxNum:        powerball.TotalPurchasedTxNum,
-		Round:                      powerball.Round,
-		LuckyNumber:                powerball.LuckyNumber,
-		LastTransToPurStateOnMain:  powerball.LastTransToPurStateOnMain,
-		LastTransToDrawStateOnMain: powerball.LastTransToDrawStateOnMain,
-		PurTime:                    powerball.PurTime,
-		DrawTime:                   powerball.DrawTime,
-		MissingRecords:             powerball.MissingRecords,
-		TotalAddrNum:               powerball.TotalAddrNum,
+		Status:                      powerball.Status,
+		AccuFund:                    powerball.AccuFund,
+		SaleFund:                    powerball.SaleFund,
+		LastTransToStartState:       powerball.LastTransToStartState,
+		LastTransToDrawState:        powerball.LastTransToDrawState,
+		TotalPurchasedTxNum:         powerball.TotalPurchasedTxNum,
+		Round:                       powerball.Round,
+		LuckyNumber:                 powerball.LuckyNumber,
+		LastTransToStartStateOnMain: powerball.LastTransToStartStateOnMain,
+		LastTransToDrawStateOnMain:  powerball.LastTransToDrawStateOnMain,
+		PurTime:                     powerball.PurTime,
+		DrawTime:                    powerball.DrawTime,
+		MissingRecords:              powerball.MissingRecords,
+		TotalAddrNum:                powerball.TotalAddrNum,
 	}
 	return reply, nil
 }

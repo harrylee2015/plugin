@@ -20,7 +20,7 @@ const (
 const (
 	PowerballNil = iota
 	PowerballCreated
-	PowerballPurchase
+	PowerballStarted
 	PowerballPaused
 	PowerballDrawed
 	PowerballClosed
@@ -29,6 +29,7 @@ const (
 //Powerball op
 const (
 	PowerballActionCreate = 1 + iota
+	PowerballActionStart
 	PowerballActionBuy
 	PowerballActionPause
 	PowerballActionDraw
@@ -36,8 +37,9 @@ const (
 
 	//log for powerball
 	TyLogPowerballCreate = 801
-	TyLogPowerballBuy    = 802
-	TyLogPowerballPause  = 803
-	TyLogPowerballDraw   = 804
-	TyLogPowerballClose  = 805
+	TyLogPowerballStart  = 802
+	TyLogPowerballBuy    = 803
+	TyLogPowerballPause  = 804
+	TyLogPowerballDraw   = 805
+	TyLogPowerballClose  = 806
 )

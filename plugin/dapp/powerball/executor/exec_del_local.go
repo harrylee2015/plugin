@@ -17,7 +17,7 @@ func (l *Powerball) execDelLocal(tx *types.Transaction, receiptData *types.Recei
 	}
 	for _, item := range receiptData.Logs {
 		switch item.Ty {
-		case pty.TyLogPowerballCreate, pty.TyLogPowerballBuy, pty.TyLogPowerballPause, pty.TyLogPowerballDraw, pty.TyLogPowerballClose:
+		case pty.TyLogPowerballCreate, pty.TyLogPowerballStart, pty.TyLogPowerballBuy, pty.TyLogPowerballPause, pty.TyLogPowerballDraw, pty.TyLogPowerballClose:
 			var powerlog pty.ReceiptPowerball
 			err := types.Decode(item.Log, &powerlog)
 			if err != nil {
@@ -45,25 +45,30 @@ func (l *Powerball) execDelLocal(tx *types.Transaction, receiptData *types.Recei
 
 // ExecDelLocal_Create action
 func (l *Powerball) ExecDelLocal_Create(payload *pty.PowerballCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return nil, nil
+	return l.execDelLocal(tx, receiptData)
+}
+
+// ExecDelLocal_Start action
+func (l *Powerball) ExecDelLocal_Start(payload *pty.PowerballStart, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return l.execDelLocal(tx, receiptData)
 }
 
 // ExecDelLocal_Buy action
 func (l *Powerball) ExecDelLocal_Buy(payload *pty.PowerballBuy, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return nil, nil
+	return l.execDelLocal(tx, receiptData)
 }
 
 // ExecDelLocal_Pause action
 func (l *Powerball) ExecDelLocal_Pause(payload *pty.PowerballPause, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return nil, nil
+	return l.execDelLocal(tx, receiptData)
 }
 
 // ExecDelLocal_Draw action
 func (l *Powerball) ExecDelLocal_Draw(payload *pty.PowerballDraw, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return nil, nil
+	return l.execDelLocal(tx, receiptData)
 }
 
 // ExecDelLocal_Close action
 func (l *Powerball) ExecDelLocal_Close(payload *pty.PowerballClose, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return nil, nil
+	return l.execDelLocal(tx, receiptData)
 }
