@@ -24,7 +24,7 @@ message Powerball {
     int64                        saleFund                   = 5;
     string                       purTime                    = 6;
     string                       drawTime                   = 7;
-    int64                        lastTransToPurState        = 8;
+    int64                        lastTransToStartState      = 8;
     int64                        lastTransToDrawState       = 9;
     repeated PurchaseInfo        purInfos                   = 10;
     int64                        totalPurchasedTxNum        = 11;
@@ -32,7 +32,7 @@ message Powerball {
     int64                        round                      = 13;
     BallNumber                   luckyNumber                = 14;
     int64                        createOnMain               = 15;
-    int64                        lastTransToPurStateOnMain  = 16;
+    int64                        lastTransToStartStateOnMain = 16;
     int64                        lastTransToDrawStateOnMain = 17;
     repeated PowerMissingRecord  missingRecords             = 18;
     int64                        ticketPrice                = 19;
@@ -52,10 +52,11 @@ message PowerMissingRecord {
 message PowerballAction {
     oneof value {
         PowerballCreate create = 1;
-        PowerballBuy    buy    = 2;
-		PowerballPause  pause  = 3;
-        PowerballDraw   draw   = 4;
-        PowerballClose  close  = 5;
+        PowerballStart  start  = 2;
+        PowerballBuy    buy    = 3;
+		PowerballPause  pause  = 4;
+        PowerballDraw   draw   = 5;
+        PowerballClose  close  = 6;
     }
     int32 ty = 10;
 }
@@ -66,6 +67,10 @@ message PowerballCreate {
     int64  ticketPrice   = 3;
     int64  platformRatio = 4;
     int64  developRatio  = 5;
+}
+
+message PowerballStart {
+    string powerballID = 1;
 }
 
 message PowerballBuy {
@@ -150,12 +155,12 @@ message ReplyPowerballCurrentInfo {
     int32    status                       = 1;
     int64    accuFund                     = 2;
     int64    saleFund                     = 3;
-    int64    lastTransToPurState          = 4;
+    int64    lastTransToStartState        = 4;
     int64    lastTransToDrawState         = 5;
     int64    totalPurchasedTxNum          = 6;
     int64    round                        = 7;
     BallNumber luckyNumber                = 8;
-    int64    lastTransToPurStateOnMain    = 9;
+    int64    lastTransToStartStateOnMain  = 9;
     int64    lastTransToDrawStateOnMain   = 10;
     string   purTime                      = 11;
     string   drawTime                     = 12;

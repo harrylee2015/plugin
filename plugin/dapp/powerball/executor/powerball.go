@@ -70,8 +70,8 @@ func (ball *Powerball) findPowerballBuyRecords(prefix []byte) (*pty.PowerballBuy
 		if err != nil {
 			return nil, err
 		}
-		var record pty.PowerballBuyRecord
 		for _, value := range values {
+			var record pty.PowerballBuyRecord
 			err := types.Decode(value, &record)
 			if err != nil {
 				continue
@@ -82,7 +82,7 @@ func (ball *Powerball) findPowerballBuyRecords(prefix []byte) (*pty.PowerballBuy
 		if len(values) < int(DefultCount) {
 			break
 		}
-		key = []byte(fmt.Sprintf("%s:%18d", prefix, record.Index))
+		key = []byte(fmt.Sprintf("%s:%18d", prefix, records.Records[count-1].Index))
 	}
 	pblog.Info("findPowerballBuyRecords", "count", count)
 	return &records, nil

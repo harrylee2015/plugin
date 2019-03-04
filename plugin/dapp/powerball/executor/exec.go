@@ -15,6 +15,12 @@ func (l *Powerball) Exec_Create(payload *pty.PowerballCreate, tx *types.Transact
 	return actiondb.PowerballCreate(payload)
 }
 
+// Exec_Start start game
+func (l *Powerball) Exec_Start(payload *pty.PowerballStart, tx *types.Transaction, index int) (*types.Receipt, error) {
+	actiondb := NewPowerballAction(l, tx, index)
+	return actiondb.PowerballStart(payload)
+}
+
 // Exec_Buy buy ticket
 func (l *Powerball) Exec_Buy(payload *pty.PowerballBuy, tx *types.Transaction, index int) (*types.Receipt, error) {
 	actiondb := NewPowerballAction(l, tx, index)

@@ -102,6 +102,7 @@ func NewPowerballDB(powerballID string, purTime string, drawTime string, ticketP
 	ball.CreateAddr = addr
 	ball.Round = 0
 	ball.LuckyNumber = nil
+	ball.PurInfos = nil
 	ball.MissingRecords = make([]*pty.PowerMissingRecord, 2)
 	ball.MissingRecords[0] = &pty.PowerMissingRecord{Times: make([]int64, RedRange)}
 	ball.MissingRecords[1] = &pty.PowerMissingRecord{Times: make([]int64, BlueRange)}
@@ -168,6 +169,16 @@ func (action *Action) GetPowerCommonRecipt(powerball *pty.Powerball, preStatus i
 func (action *Action) GetCreateReceiptLog(powerball *pty.Powerball, preStatus int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = pty.TyLogPowerballCreate
+
+	p := action.GetPowerCommonRecipt(powerball, preStatus)
+	log.Log = types.Encode(p)
+	return log
+}
+
+// GetStartReceiptLog generate logs for powerball start action
+func (action *Action) GetStartReceiptLog(powerball *pty.Powerball, preStatus int32) *types.ReceiptLog {
+	log := &types.ReceiptLog{}
+	log.Ty = pty.TyLogPowerballStart
 
 	p := action.GetPowerCommonRecipt(powerball, preStatus)
 	log.Log = types.Encode(p)
@@ -280,6 +291,66 @@ func (action *Action) PowerballCreate(create *pty.PowerballCreate) (*types.Recei
 	return receipt, nil
 }
 
+// PowerballStart start powerball
+func (action *Action) PowerballStart(start *pty.PowerballStart) (*types.Receipt, error) {
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+	var receipt *types.Receipt
+
+	powerball, err := findPowerball(action.db, start.PowerballID)
+	if err != nil {
+		pblog.Error("PowerballStart", "PowerballId", start.PowerballID)
+		return nil, err
+	}
+
+	ball := &PowerballDB{*powerball}
+	preStatus := ball.Status
+	if ball.Status != pty.PowerballCreated && ball.Status != pty.PowerballDrawed {
+		pblog.Error("PowerballStart", "ball.Status", ball.Status)
+		return nil, pty.ErrPowerballStatus
+	}
+
+	if ball.Status == pty.PowerballDrawed {
+		//no problem both on main and para
+		if action.height <= ball.LastTransToDrawState {
+			pblog.Error("PowerballStart", "action.heigt", action.height, "lastTransToDrawState", ball.LastTransToDrawState)
+			return nil, pty.ErrPowerballStatus
+		}
+	}
+
+	if action.fromaddr != ball.GetCreateAddr() {
+		pblog.Error("PowerballStart", "action.fromaddr", action.fromaddr)
+		return nil, pty.ErrPowerballStartActionInvalid
+	}
+
+	pblog.Debug("Powerball enter start state", "PowerballId", start.PowerballID)
+	ball.Status = pty.PowerballStarted
+	ball.TotalPurchasedTxNum = 0
+	ball.TotalAddrNum = 0
+	ball.SaleFund = 0
+	ball.LastTransToStartState = action.height
+	ball.Round++
+	ball.LuckyNumber = nil
+	ball.PurInfos = nil
+	if types.IsPara() {
+		mainHeight := action.powerball.GetMainHeight()
+		if mainHeight < 0 {
+			pblog.Error("PowerballStart", "mainHeight", mainHeight)
+			return nil, pty.ErrPowerballStatus
+		}
+		ball.LastTransToStartStateOnMain = mainHeight
+	}
+
+	ball.Save(action.db)
+	kv = append(kv, ball.GetKVSet()...)
+
+	receiptLog := action.GetStartReceiptLog(&ball.Powerball, preStatus)
+	logs = append(logs, receiptLog)
+
+	receipt = &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
+	return receipt, nil
+}
+
 // PowerballBuy buy powerball
 func (action *Action) PowerballBuy(buy *pty.PowerballBuy) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
@@ -294,33 +365,9 @@ func (action *Action) PowerballBuy(buy *pty.PowerballBuy) (*types.Receipt, error
 	ball := &PowerballDB{*powerball}
 	preStatus := ball.Status
 
-	if ball.Status == pty.PowerballPaused || ball.Status == pty.PowerballClosed {
+	if ball.Status != pty.PowerballStarted {
 		pblog.Error("PowerballBuy", "status", ball.Status)
 		return nil, pty.ErrPowerballStatus
-	}
-
-	if ball.Status == pty.PowerballDrawed {
-		//no problem both on main and para
-		if action.height <= ball.LastTransToDrawState {
-			pblog.Error("PowerballBuy", "action.heigt", action.height, "lastTransToDrawState", ball.LastTransToDrawState)
-			return nil, pty.ErrPowerballStatus
-		}
-	}
-
-	if ball.Status == pty.PowerballCreated || ball.Status == pty.PowerballDrawed {
-		pblog.Debug("PowerballBuy switch to purchase state")
-		ball.LastTransToPurState = action.height
-		ball.Status = pty.PowerballPurchase
-		ball.Round++
-		ball.LuckyNumber = nil
-		if types.IsPara() {
-			mainHeight := action.powerball.GetMainHeight()
-			if mainHeight < 0 {
-				pblog.Error("PowerballBuy", "mainHeight", mainHeight)
-				return nil, pty.ErrPowerballStatus
-			}
-			ball.LastTransToPurStateOnMain = mainHeight
-		}
 	}
 
 	if ball.CreateAddr == action.fromaddr {
@@ -410,7 +457,7 @@ func (action *Action) PowerballPause(pause *pty.PowerballPause) (*types.Receipt,
 
 	ball := &PowerballDB{*powerball}
 	preStatus := ball.Status
-	if ball.Status != pty.PowerballPurchase {
+	if ball.Status != pty.PowerballStarted {
 		pblog.Error("PowerballPause", "ball.Status", ball.Status)
 		return nil, pty.ErrPowerballStatus
 	}
@@ -422,18 +469,14 @@ func (action *Action) PowerballPause(pause *pty.PowerballPause) (*types.Receipt,
 
 	if types.IsPara() {
 		mainHeight := action.powerball.GetMainHeight()
-		if mainHeight < 0 {
-			pblog.Error("PowerballPause", "mainHeight", mainHeight)
-			return nil, pty.ErrPowerballStatus
-		}
-		if mainHeight-ball.GetLastTransToPurStateOnMain() < minPauseBlockNum {
+		if mainHeight-ball.GetLastTransToStartStateOnMain() < minPauseBlockNum {
 			pblog.Error("PowerballPause", "action.height", action.height, "mainHeight", mainHeight,
-				"GetLastTransToPurStateOnMain", ball.GetLastTransToPurState())
+				"GetLastTransToStartStateOnMain", ball.GetLastTransToStartStateOnMain())
 			return nil, pty.ErrPowerballStatus
 		}
 	} else {
-		if action.height-ball.GetLastTransToPurState() < minPauseBlockNum {
-			pblog.Error("PowerballPause", "action.height", action.height, "GetLastTransToPurState", ball.GetLastTransToPurState())
+		if action.height-ball.GetLastTransToStartState() < minPauseBlockNum {
+			pblog.Error("PowerballPause", "action.height", action.height, "GetLastTransToStartState", ball.GetLastTransToStartState())
 			return nil, pty.ErrPowerballStatus
 		}
 	}
@@ -458,7 +501,7 @@ func (action *Action) PowerballDraw(draw *pty.PowerballDraw) (*types.Receipt, er
 
 	powerball, err := findPowerball(action.db, draw.PowerballID)
 	if err != nil {
-		pblog.Error("PowerballBuy", "PowerballId", draw.PowerballID)
+		pblog.Error("PowerballDraw", "PowerballId", draw.PowerballID)
 		return nil, err
 	}
 
@@ -776,14 +819,10 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 
 	pblog.Debug("checkDraw powerball enter draw state")
 	ball.Status = pty.PowerballDrawed
-	ball.PurInfos = nil
-	ball.TotalPurchasedTxNum = 0
-	ball.TotalAddrNum = 0
 	ball.LastTransToDrawState = action.height
 	ball.LuckyNumber = luckynum
 	//累计奖池包括：一定比例的销售额，未中的高等级奖金
 	ball.AccuFund = ball.SaleFund*NextRatio/1000 + remainFund
-	ball.SaleFund = 0
 	action.recordMissing(ball)
 
 	if types.IsPara() {

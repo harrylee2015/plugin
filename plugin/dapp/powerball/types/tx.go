@@ -14,6 +14,12 @@ type PowerballCreateTx struct {
 	Fee           int64  `json:"fee"`
 }
 
+// PowerballStartTx struct
+type PowerballStartTx struct {
+	PowerballID string `json:"powerballID"`
+	Fee         int64  `json:"fee"`
+}
+
 // PowerballBuyTx struct
 type PowerballBuyTx struct {
 	PowerballID string `json:"powerballID"`

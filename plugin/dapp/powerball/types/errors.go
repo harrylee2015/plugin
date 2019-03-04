@@ -10,6 +10,7 @@ import "errors"
 var (
 	ErrNoPrivilege                 = errors.New("ErrNoPrivilege")
 	ErrPowerballStatus             = errors.New("ErrPowerballStatus")
+	ErrPowerballStartActionInvalid = errors.New("ErrPowerballStartActionInvalid")
 	ErrPowerballPauseActionInvalid = errors.New("ErrPowerballPauseActionInvalid")
 	ErrPowerballDrawActionInvalid  = errors.New("ErrPowerballDrawActionInvalid")
 	ErrPowerballFundNotEnough      = errors.New("ErrPowerballFundNotEnough")
