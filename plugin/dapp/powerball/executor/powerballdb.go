@@ -789,20 +789,24 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 	pblog.Debug("checkDraw", "round", ball.Round, "currentFund", currentFund, "totalPrizeFund", totalPrizeFund, "remainFund", remainFund)
 
 	pblog.Debug("checkDraw transfer to platform", "platformFund", platformFund)
-	receipt1, err := action.coinsAccount.ExecTransferFrozen(ball.CreateAddr, PlatformAddr, action.execaddr, platformFund)
-	if err != nil {
-		return nil, nil, nil, nil, err
+	if platformFund > 0 {
+		receipt1, err := action.coinsAccount.ExecTransferFrozen(ball.CreateAddr, PlatformAddr, action.execaddr, platformFund)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		kv = append(kv, receipt1.KV...)
+		logs = append(logs, receipt1.Logs...)
 	}
-	kv = append(kv, receipt1.KV...)
-	logs = append(logs, receipt1.Logs...)
 
 	pblog.Debug("checkDraw transfer to develop", "developFund", developFund)
-	receipt2, err := action.coinsAccount.ExecTransferFrozen(ball.CreateAddr, DevelopAddr, action.execaddr, developFund)
-	if err != nil {
-		return nil, nil, nil, nil, err
+	if developFund > 0 {
+		receipt2, err := action.coinsAccount.ExecTransferFrozen(ball.CreateAddr, DevelopAddr, action.execaddr, developFund)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+		kv = append(kv, receipt2.KV...)
+		logs = append(logs, receipt2.Logs...)
 	}
-	kv = append(kv, receipt2.KV...)
-	logs = append(logs, receipt2.Logs...)
 
 	for _, info := range ball.PurInfos {
 		if info.FundWin > 0 {
@@ -811,7 +815,6 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
-
 			kv = append(kv, receipt.KV...)
 			logs = append(logs, receipt.Logs...)
 		}
@@ -828,7 +831,7 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 	if types.IsPara() {
 		mainHeight := action.powerball.GetMainHeight()
 		if mainHeight < 0 {
-			pblog.Error("PowerballBuy", "mainHeight", mainHeight)
+			pblog.Error("checkDraw", "mainHeight", mainHeight)
 			return nil, nil, nil, nil, pty.ErrPowerballStatus
 		}
 		ball.LastTransToDrawStateOnMain = mainHeight
