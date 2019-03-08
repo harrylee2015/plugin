@@ -743,7 +743,7 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 	sixthPrize := ball.TicketPrice * SixthRatio * decimal
 	lowPrizeFund := totalPrizeCnt[Sixth] * sixthPrize
 	//当期奖池不够支付六等奖的总奖金时，调整六等奖的数额
-	if currentFund <= lowPrizeFund {
+	if lowPrizeFund > 0 && currentFund <= lowPrizeFund {
 		pblog.Info("checkDraw need adjust sixthPrize", "currentFund", currentFund, "lowPrizeFund", lowPrizeFund, "sixthPrize", sixthPrize)
 		for currentFund <= lowPrizeFund {
 			//每次递减90%
@@ -786,7 +786,7 @@ func (action *Action) checkDraw(ball *PowerballDB) (*types.Receipt, *pty.Powerba
 		totalPrizeFund += info.FundWin
 	}
 	remainFund := currentFund - totalPrizeFund
-	pblog.Debug("checkDraw", "round", ball.Round, "currentFund", currentFund, "totalPrizeFund", totalPrizeFund, "remainFund", remainFund)
+	pblog.Info("checkDraw", "round", ball.Round, "currentFund", currentFund, "totalPrizeFund", totalPrizeFund, "remainFund", remainFund)
 
 	pblog.Debug("checkDraw transfer to platform", "platformFund", platformFund)
 	if platformFund > 0 {
