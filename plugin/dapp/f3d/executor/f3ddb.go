@@ -19,7 +19,7 @@ import (
 
 // round status
 const (
-	decimal = 100000000 //1e8
+	decimal = float32(100000000) //1e8
 	// ListDESC  desc query
 	ListDESC = int32(0)
 	// ListASC  asc query
@@ -346,17 +346,17 @@ func (action *Action) F3dLuckyDraw(buy *pt.F3DLuckyDraw) (*types.Receipt, error)
 		return &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}, nil
 	}
 
-	bonus := int64(lastRound.BonusPool * (pt.GetF3dBonusDeveloper() + pt.GetF3dBonusKey() + pt.GetF3dBonusWinner()) * decimal)
-	winner := int64(lastRound.BonusPool * pt.GetF3dBonusWinner() * decimal)
-	developer := int64(lastRound.BonusPool * pt.GetF3dBonusDeveloper() * decimal)
-	Keys := float32(lastRound.BonusPool * pt.GetF3dBonusKey() * decimal)
+	bonus := lastRound.BonusPool * (pt.GetF3dBonusDeveloper() + pt.GetF3dBonusKey() + pt.GetF3dBonusWinner()) * decimal
+	winner := lastRound.BonusPool * pt.GetF3dBonusWinner() * decimal
+	developer := lastRound.BonusPool * pt.GetF3dBonusDeveloper() * decimal
+	Keys := lastRound.BonusPool * pt.GetF3dBonusKey() * decimal
 	//balance check
 	// balance check
-	if !action.checkExecAccountBalance(action.fromaddr, 0, bonus) {
+	if !action.checkExecAccountBalance(action.fromaddr, 0, int64(bonus)) {
 		flog.Error("F3dLuckyDraw", "checkExecAccountBalance", action.fromaddr, "execaddr", action.execaddr, "err", types.ErrNoBalance.Error())
 		return nil, types.ErrNoBalance
 	}
-	receipt, err := action.coinsAccount.ExecActive(action.fromaddr, action.execaddr, bonus)
+	receipt, err := action.coinsAccount.ExecActive(action.fromaddr, action.execaddr, int64(bonus))
 	if err != nil {
 		flog.Error("F3dLuckyDraw.ExecActive", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", bonus/decimal)
 		return nil, err
@@ -364,7 +364,7 @@ func (action *Action) F3dLuckyDraw(buy *pt.F3DLuckyDraw) (*types.Receipt, error)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
 	//pay bonus for winner
-	receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, lastRound.LastOwner, action.execaddr, winner)
+	receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, lastRound.LastOwner, action.execaddr, int64(winner))
 	if err != nil {
 		flog.Error("F3dLuckyDraw.ExecTransfer", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", winner/decimal)
 		return nil, err
@@ -373,7 +373,7 @@ func (action *Action) F3dLuckyDraw(buy *pt.F3DLuckyDraw) (*types.Receipt, error)
 	kv = append(kv, receipt.KV...)
 
 	//pay bonus for developer
-	receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, pt.GetF3dDeveloperAddr(), action.execaddr, developer)
+	receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, pt.GetF3dDeveloperAddr(), action.execaddr, int64(developer))
 	if err != nil {
 		flog.Error("F3dLuckyDraw.ExecTransfer", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", developer/decimal)
 		return nil, err
@@ -397,18 +397,18 @@ HERE:
 			if err != nil {
 				continue
 			}
-			var keyBonus int64
+			var keyBonus float32
 			if info.Addr == lastRound.LastOwner {
-				keyBonus = int64(Keys * (float32(info.KeyNum-1) / float32(lastRound.KeyCount)))
-				info.Bonus = float32((keyBonus + winner) / decimal)
+				keyBonus = Keys * (float32(info.KeyNum-1) / float32(lastRound.KeyCount))
+				info.Bonus = (keyBonus + winner) / decimal
 			} else {
-				keyBonus = int64(Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount)))
-				info.Bonus = float32(keyBonus / decimal)
+				keyBonus = Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount))
+				info.Bonus = keyBonus / decimal
 			}
 			if keyBonus <= 0 {
 				continue
 			}
-			receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, info.Addr, action.execaddr, keyBonus)
+			receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, info.Addr, action.execaddr, int64(keyBonus))
 			if err != nil {
 				flog.Error("F3dLuckyDraw.ExecTransfer", "addr", info.Addr, "execaddr", action.execaddr, "amount", keyBonus/decimal)
 				return nil, err
