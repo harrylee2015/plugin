@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/db/table"
 	"github.com/33cn/chain33/types"
@@ -70,11 +71,11 @@ func (tx *FluckyRow) Get(key string) ([]byte, error) {
 	} else if key == "maxnum" {
 		return []byte(fmt.Sprintf("%2d", tx.MaxNum)), nil
 	} else if key == "bonus" {
-		return []byte(fmt.Sprintf("%2d", tx.Bonus)), nil
+		return []byte(fmt.Sprintf("%2f", tx.Bonus)), nil
 	} else if key == "addr:index" {
-		return [] byte(fmt.Sprintf("%s:%08d", tx.Addr, tx.Index)), nil
+		return []byte(fmt.Sprintf("%s:%08d", tx.Addr, tx.Index)), nil
 	} else if key == "addrprefix" {
-		return [] byte(fmt.Sprintf("%s:", tx.Addr)), nil
+		return []byte(fmt.Sprintf("%s:", tx.Addr)), nil
 	}
 	return nil, types.ErrNotFound
 }

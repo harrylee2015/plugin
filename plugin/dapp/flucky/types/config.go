@@ -239,7 +239,7 @@ func CheckRangeInfo(rules []*Rule) (err error) {
 
 	sort(orderRangeInfo)
 
-	for i := 0; i < len(orderRangeInfo)-1; i ++ {
+	for i := 0; i < len(orderRangeInfo)-1; i++ {
 		if orderRangeInfo[i].maxRange != orderRangeInfo[i+1].minRange-1 {
 			return fmt.Errorf("Wrong Range Info...")
 		}
@@ -254,7 +254,7 @@ func CheckRangeInfo(rules []*Rule) (err error) {
 func sort(rangeInfo []*RangeInfo) {
 	// 数据量不大，冒泡就可以
 	len := len(rangeInfo)
-	for i := 0; i < len-1; i ++ {
+	for i := 0; i < len-1; i++ {
 		for j := i + 1; j < len; j++ {
 			if rangeInfo[i].minRange > rangeInfo[j].minRange {
 				var info RangeInfo

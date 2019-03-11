@@ -2,16 +2,17 @@ package executor
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/common/db/table"
 	"strconv"
+	"time"
+
 	"github.com/33cn/chain33/account"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/table"
 	"github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	ft "github.com/33cn/plugin/plugin/dapp/flucky/types"
-	"time"
 )
 
 func calcFluckyUserTimesKey(addr string) string {
@@ -416,9 +417,9 @@ func QueryBetListByPage(db dbm.KVDB, stateDB dbm.KV, param *ft.QueryBetInfoBatch
 }
 
 func getAddrPrefix(addr string) []byte {
-	return []byte( fmt.Sprintf("%s", addr))
+	return []byte(fmt.Sprintf("%s", addr))
 }
 
 func getAddrInfo(addr string, index int64) []byte {
-	return []byte (fmt.Sprintf("%s:%08d", addr, index))
+	return []byte(fmt.Sprintf("%s:%08d", addr, index))
 }

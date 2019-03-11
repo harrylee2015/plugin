@@ -13,10 +13,10 @@ const (
 
 	FluckyBetAction = "Bet"
 
-	FuncNameQueryBetInfo   = "QueryBetInfo"
+	FuncNameQueryBetInfo      = "QueryBetInfo"
 	FuncNameQueryBetBatchInfo = "QueryBetInfoBatch"
 	FuncNameQueryBetTimesInfo = "QueryBetTimes"
-	FuncNameQueryBonusInfo = "QueryBonusInfo"
+	FuncNameQueryBonusInfo    = "QueryBonusInfo"
 )
 
 var (
