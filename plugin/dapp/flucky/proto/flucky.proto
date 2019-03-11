@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+import "transaction.proto";
+
+package types;
+
+message BetReq {
+    int64 index = 1;
+}
+
+message BetRes {
+
+}
+
+message BonusInfo {
+    int32 userCount = 1;
+    float bonusPool = 2;
+}
+
+message BetInfo {
+    int64 index = 1;
+    string addr = 2;
+    uint64 time = 3;
+    int64 amount = 4;
+    repeated int64 randNum = 5;
+    int64 maxNum = 6;
+    float bonus = 7;
+}
+
+message FluckyAction {
+    oneof value {
+        FluckyBet bet = 1;
+    }
+    int32 ty = 6;
+}
+
+message FluckyBet {
+    int64 amount = 1;
+}
+
+message QueryBetInfoBatch {
+    string addr = 1;
+    int64 index = 2;
+    int32 count = 3;
+    int32 direction = 4;
+}
+
+message QueryBetInfo {
+    string addr = 1;
+    int64 idx = 2;
+}
+
+message QueryBetTimes {
+    string addr = 1;
+}
+
+message QueryBonusInfo {
+
+}
+
+message ReplyBetInfo {
+    BetInfo bet = 1;
+}
+
+message ReplyBetInfoBatch {
+    repeated ReceiptFlucky bets = 2;
+}
+
+message ReplyBetTimes {
+    int32 times = 1;
+}
+
+// 奖池信息响应
+message ReplyBonusInfo {
+    int32 userCount = 1;
+    float bonusPool = 2;
+}
+
+message ReceiptFlucky {
+    int64 index = 1;
+    string addr = 2;
+    uint64 time = 3;
+    int64 amount = 4;
+    repeated int64 randNum = 5;
+    int64 maxNum = 6;
+    float bonus = 7;
+    int64 action = 8;
+}
+
+service flucky {
+    // flucky 对外提供服务的接口
+    rpc Bet (FluckyBet) returns (UnsignTx) {
+    }
+}
+
+message Config {
+    string platformAddr = 1;
+    float maxBonus = 2;
+    float minBonus = 3;
+    float platformToBonus = 4;
+    float bonusToPlatform = 5;
+    int64 modNum = 6;
+    repeated Rule rewardRule = 7;
+    repeated BetTime betTimeRule = 8;
+}
+
+message Rule {
+    repeated int64 range = 1;
+    int32 type = 2;
+    float percent = 3;
+}
+
+message BetTime {
+    int64 amount = 1;
+    int64 times = 2;
+}
+
+

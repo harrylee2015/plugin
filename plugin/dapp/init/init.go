@@ -6,6 +6,7 @@ import (
 	_ "github.com/33cn/plugin/plugin/dapp/echo"       //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/evm"        //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/f3d"        //auto gen
+	_ "github.com/33cn/plugin/plugin/dapp/flucky"     //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/game"       //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/guess"      //auto gen
 	_ "github.com/33cn/plugin/plugin/dapp/hashlock"   //auto gen
