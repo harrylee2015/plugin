@@ -23,7 +23,7 @@ func init() {
 
 // Init 重命名执行器名称
 func Init(name string, sub []byte) {
-	var config ft.Config
+	var config ft.FluckyCfg
 	if sub != nil {
 		types.MustDecode(sub, &config)
 	}

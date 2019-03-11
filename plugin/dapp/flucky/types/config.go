@@ -43,7 +43,7 @@ type RangeInfo struct {
 	maxRange int64
 }
 
-func SetConfig(config *Config) {
+func SetConfig(config *FluckyCfg) {
 	if config.GetPlatformAddr() != "" {
 		platFormAddr = config.GetPlatformAddr()
 	}
@@ -70,7 +70,7 @@ func SetConfig(config *Config) {
 	checkBetTImeRule(config)
 }
 
-func checkRewardRule(config *Config) {
+func checkRewardRule(config *FluckyCfg) {
 	if config.GetRewardRule() == nil {
 		useDefaultRewardRule()
 		return
@@ -89,7 +89,7 @@ func checkRewardRule(config *Config) {
 	}
 }
 
-func checkBetTImeRule(config *Config) {
+func checkBetTImeRule(config *FluckyCfg) {
 	if config.GetBetTimeRule() == nil {
 		useDefaultBetTimeRule()
 		return
