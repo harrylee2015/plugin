@@ -5,7 +5,7 @@ import (
 	jsonrpc "github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
-	ft "github.com/chain33private/cezapara/plugin/dapp/flucky/types"
+	ft "github.com/33cn/plugin/plugin/dapp/flucky/types"
 	"github.com/spf13/cobra"
 )
 

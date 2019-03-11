@@ -3,7 +3,7 @@ package rpc
 import (
 	context "golang.org/x/net/context"
 	"github.com/33cn/chain33/types"
-	ft "github.com/chain33private/cezapara/plugin/dapp/flucky/types"
+	ft "github.com/33cn/plugin/plugin/dapp/flucky/types"
 )
 
 func (c *channelClient) Bet(ctx context.Context, head *ft.FluckyBet) (*types.UnsignTx, error) {

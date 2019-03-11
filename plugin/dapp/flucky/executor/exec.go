@@ -2,7 +2,7 @@ package executor
 
 import (
 	"github.com/33cn/chain33/types"
-	ft "github.com/chain33private/cezapara/plugin/dapp/flucky/types"
+	ft "github.com/33cn/plugin/plugin/dapp/flucky/types"
 )
 
 // Exec_Create 创建游戏

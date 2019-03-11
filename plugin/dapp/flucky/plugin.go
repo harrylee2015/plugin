@@ -2,10 +2,10 @@ package flucky
 
 import (
 	"github.com/33cn/chain33/pluginmgr"
-	"github.com/chain33private/cezapara/plugin/dapp/flucky/commands"
-	"github.com/chain33private/cezapara/plugin/dapp/flucky/executor"
-	"github.com/chain33private/cezapara/plugin/dapp/flucky/rpc"
-	"github.com/chain33private/cezapara/plugin/dapp/flucky/types"
+	"github.com/33cn/plugin/plugin/dapp/flucky/commands"
+	"github.com/33cn/plugin/plugin/dapp/flucky/executor"
+	"github.com/33cn/plugin/plugin/dapp/flucky/rpc"
+	"github.com/33cn/plugin/plugin/dapp/flucky/types"
 )
 
 func init() {

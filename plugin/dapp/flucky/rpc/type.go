@@ -2,7 +2,7 @@ package rpc
 
 import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	ft "github.com/chain33private/cezapara/plugin/dapp/flucky/types"
+	ft "github.com/33cn/plugin/plugin/dapp/flucky/types"
 )
 
 // Jrpc json rpc struct
