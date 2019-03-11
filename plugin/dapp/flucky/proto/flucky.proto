@@ -93,7 +93,7 @@ service flucky {
     }
 }
 
-message Config {
+message FluckyCfg {
     string platformAddr = 1;
     float maxBonus = 2;
     float minBonus = 3;
