@@ -405,18 +405,18 @@ HERE:
 				keyBonus = Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount))
 				info.Bonus = keyBonus / decimal
 			}
-			if keyBonus <= 0 {
-				continue
-			}
-			receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, info.Addr, action.execaddr, int64(keyBonus))
-			if err != nil {
-				flog.Error("F3dLuckyDraw.ExecTransfer", "addr", info.Addr, "execaddr", action.execaddr, "amount", keyBonus/decimal)
-				return nil, err
-			}
 			kvset, _ := action.GetKVSet(info)
 			kv = append(kv, kvset...)
-			logs = append(logs, receipt.Logs...)
-			kv = append(kv, receipt.KV...)
+			if keyBonus > 0 {
+				receipt, err = action.coinsAccount.ExecTransfer(action.fromaddr, info.Addr, action.execaddr, int64(keyBonus))
+				if err != nil {
+					flog.Error("F3dLuckyDraw.ExecTransfer", "addr", info.Addr, "execaddr", action.execaddr, "amount", keyBonus/decimal)
+					return nil, err
+				}
+				logs = append(logs, receipt.Logs...)
+				kv = append(kv, receipt.KV...)
+			}
+
 		}
 
 		if int32(len(replyAddr.AddrInfoList)) == DefaultCount {
