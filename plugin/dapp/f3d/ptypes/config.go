@@ -158,7 +158,7 @@ func GetF3dKeyPriceStart() float32 {
 }
 
 func validAddr(addr string) bool {
-	if addr != "" && len(addr) == 64 {
+	if addr != "" {
 		return true
 	}
 	return false
