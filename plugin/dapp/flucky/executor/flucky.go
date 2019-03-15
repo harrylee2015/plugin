@@ -58,6 +58,10 @@ func (f *Flucky) GetDriverName() string {
 	return driverName
 }
 
+func (u *Flucky) ExecutorOrder() int64 {
+	return drivers.ExecLocalSameTime
+}
+
 func calcFluckyUserHistoryKey(addr string, index int64) string {
 	key := fmt.Sprintf("LODB-flucky-user-history:%s:%d", addr, index)
 	return key

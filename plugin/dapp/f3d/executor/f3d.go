@@ -53,6 +53,10 @@ func (f *f3d) GetDriverName() string {
 	return driverName
 }
 
+func (u *f3d) ExecutorOrder() int64 {
+	return drivers.ExecLocalSameTime
+}
+
 func (f *f3d) updateLocalDB(r *pt.ReceiptF3D) (kvs []*types.KeyValue) {
 	switch r.Action {
 	case pt.F3dActionStart:
