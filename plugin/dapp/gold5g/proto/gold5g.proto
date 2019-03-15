@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+package types;
+
+message RoundInfo {
+    // 游戏轮次
+    int64 round = 1;
+    // 本轮游戏开始时间
+    int64 beginTime  = 2;
+    // 本轮游戏结束时间
+    int64 endTime    = 3;
+    // 最新的买票时间
+    int64 lastTicketTime = 5;
+    // 预留字段，最新的ticket的价格
+    double lastTicketPrice = 6;
+    // 当前公排池里奖金
+    double bonusSortPool = 7;
+    // 公排池排队用户信息
+    repeated  InTicketInfo sortPoolInfo   = 8;
+    // 本轮游戏奖金池总额
+    double bonusPool  = 9;
+    // 本轮游戏参与地址数
+    int64 userCount = 10;
+    // 本轮游戏募集到的ticket票数
+    int64 ticketCount = 11;
+    //距离开奖剩余时间
+    int64 remainTime = 12;
+    //最近一次更新时间
+    int64 updateTime = 13;
+}
+
+message RoundsInfo {
+    repeated RoundInfo roundsInfo = 1;
+}
+
+message TicketInfo {
+    // 游戏轮次  (是由系统合约填写后存储）
+    int64 round = 1;
+
+    // 本次购买ticket的价格 (是由系统合约填写后存储）
+    double ticketPrice = 2;
+
+    // 用户本次买的ticket的数量
+    int64 ticketNum = 3;
+
+    // 用户地址 (是由系统合约填写后存储）
+    string addr = 4;
+
+    // 交易确认存储时间（被打包的时间）
+    int64 buyTicketTime = 5;
+
+    //买票的txHash
+    string buyTicketTxHash = 6;
+
+    //index
+    int64 index =7;
+}
+
+
+message InTicketInfo {
+    // 用户本次买的ticket的数量
+    int64 ticketNum = 3;
+
+    // 用户地址 (是由系统合约填写后存储）
+    string addr = 4;
+
+    // 交易确认存储时间（被打包的时间）
+    int64 buyTicketTime = 5;
+}
+
+message OutTicketInfo {
+    // 用户本次买的ticket的数量
+    int64 ticketNum = 3;
+
+    // 用户地址 (是由系统合约填写后存储）
+    string addr = 4;
+
+}
+
+// message for execs.gold5g
+message Gold5GAction {
+    oneof value {
+        Gold5GStart start = 1;
+        Gold5GLuckyDraw draw = 2;
+        Gold5GBuyTicket buy = 3;
+    }
+    int32 ty = 4;
+}
+
+message Gold5GStart {
+    //轮次，这个填不填不重要，合约里面会自动校验的
+    int64 round = 1;
+}
+
+message Gold5GLuckyDraw {
+    //轮次，这个填不填不重要，合约里面会自动校验的
+    int64 round = 1;
+}
+
+message Gold5GBuyTicket {
+    // 用户本次买的key的数量
+    int64 ticketNum = 3;
+}
+
+// 查询Gold5G游戏信息
+message QueryGold5GByRound {
+    //轮次，默认查询最新的
+    int64 round = 1;
+}
+
+message QueryGold5GLastRound {
+
+}
+
+message QueryGold5GListByRound {
+    //轮次，默认查询最新的
+    int64 startRound = 1;
+    //单页返回多少条记录，默认返回10条，单次最多返回50条
+    int32 count = 2;
+    // 0降序，1升序，默认降序
+    int32 direction = 5;
+}
+
+// key 信息查询
+message QueryBuyRecordByRoundAndAddr {
+    //轮次,必填参数
+    int64 round = 1;
+    //用户地址
+    string addr = 2;
+    int64 index = 3;
+}
+// 用户key数量查询
+message QueryTicketInfoByRoundAndAddr {
+    //轮次,必填参数
+    int64 round = 1;
+    //用户地址
+    string addr = 2;
+}
+
+message QueryAddrInfo {
+    int64 round = 1;
+    string addr = 2;
+    int32 count = 3;
+    int32 direction = 4;
+}
+message Gold5GRecord {
+    //用户地址
+    string addr = 1;
+    //index
+    int64 index = 2;
+    //round
+    int64 round = 3;
+}
+message Gold5GStartRound {
+    //round
+    int64 round = 1;
+}
+message Gold5GDrawRound {
+    //round
+    int64 round = 1;
+}
+message Gold5GBuyRecord {
+    int64 round = 1;
+    string addr = 2;
+    int64 index = 3;
+}
+//Gold5G round查询返回数据
+message ReplyGold5GList {
+    repeated RoundInfo rounds = 1;
+}
+
+message ReplyGold5G {
+    RoundInfo round = 1;
+}
+
+//用户查询买的key信息返回数据
+message ReplyBuyRecord {
+    repeated TicketInfo recordList = 1;
+}
+
+message ReplyKey {
+    TicketInfo ticket = 1;
+}
+
+message ReplyTicketCount {
+    int64 count = 1;
+}
+
+message ReplyAddrInfoList {
+    repeated AddrInfo addrInfoList = 1;
+}
+message AddrInfo {
+    //用户地址
+    string addr = 1;
+    //用户本轮游戏总共买的票数
+    int64 ticketNum = 2;
+    //买了几次
+    int64 buyCount = 3;
+    //第几轮
+    int64 round = 4;
+    //总的花费
+    double totalCost = 5;
+    //基于公排池的收益
+    double sortPoolBonus = 6;
+}
+//合约内部日志记录，待补全
+message ReceiptGold5G {
+    string addr = 1;
+    int64 round = 2;
+    int64 index = 3;
+    int64 action = 4;
+    int64 buyCount = 5;
+    int64 ticketNum = 6; //totoal num
+}
+
+message Config {
+    string managerAddr = 1;
+    string developerAddr = 2;
+    string partnerAddr = 3;
+    string firstPrizeAddr = 4;
+    string secondaryPrizeAddr = 5;
+    string promotionAddr = 6;
+    string supportFundAddr = 7;
+    double firstPrizePerc = 8;
+    double secondaryPrizePerc = 9;
+    double poolBonusPerc = 10;
+    double supportFund = 11;
+    double partner = 12;
+    double developer = 13;
+    double bonusPool = 14;
+    double promotion = 15;
+
+    int64 lifeTime = 16;
+    int64 ticketIncrTime = 17;
+    double ticketPrice = 18;
+
+}
+
