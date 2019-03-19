@@ -399,7 +399,7 @@ HERE:
 			}
 			var keyBonus float32
 			if info.Addr == lastRound.LastOwner {
-				keyBonus = Keys * (float32(info.KeyNum-1) / float32(lastRound.KeyCount))
+				keyBonus = Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount))
 				info.Bonus = (keyBonus + winner) / decimal
 			} else {
 				keyBonus = Keys * (float32(info.KeyNum) / float32(lastRound.KeyCount))
