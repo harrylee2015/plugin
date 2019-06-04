@@ -14,6 +14,14 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+const (
+	// 同store/mavl中定义保持一致，即裁剪的加前缀
+	hashNodePrefix        = "_mh_"
+	leafNodePrefix        = "_mb_"
+	leafKeyCountPrefix    = "..mk.."
+	oldLeafKeyCountPrefix = "..mok.."
+)
+
 // MavlStore mavl store struct
 type MavlStore struct {
 	db               dbm.DB
@@ -32,12 +40,16 @@ func NewMavl(sub *subMavlConfig, db dbm.DB) *MavlStore {
 		subcfg.EnableMVCC = sub.EnableMVCC
 		subcfg.EnableMavlPrune = sub.EnableMavlPrune
 		subcfg.PruneHeight = sub.PruneHeight
+		subcfg.EnableMemTree = sub.EnableMemTree
+		subcfg.EnableMemVal = sub.EnableMemVal
 	}
 	mavls := &MavlStore{db, &sync.Map{}, subcfg.EnableMavlPrefix, subcfg.EnableMVCC, subcfg.EnableMavlPrune, subcfg.PruneHeight}
 	mavl.EnableMavlPrefix(subcfg.EnableMavlPrefix)
 	mavl.EnableMVCC(subcfg.EnableMVCC)
 	mavl.EnablePrune(subcfg.EnableMavlPrune)
 	mavl.SetPruneHeight(int(subcfg.PruneHeight))
+	mavl.EnableMemTree(subcfg.EnableMemTree)
+	mavl.EnableMemVal(subcfg.EnableMemVal)
 	return mavls
 }
 
@@ -82,7 +94,7 @@ func (mavls *MavlStore) Get(datas *types.StoreGet) [][]byte {
 func (mavls *MavlStore) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		kmlog.Info("MemSet", "cost", types.Since(beg))
+		kmlog.Info("mavl MemSet", "cost", types.Since(beg))
 	}()
 	if len(datas.KV) == 0 {
 		kmlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
@@ -103,11 +115,34 @@ func (mavls *MavlStore) MemSet(datas *types.StoreSet, sync bool) ([]byte, error)
 	return hash, nil
 }
 
+// MemSetUpgrade 计算hash之后不在内存中存储树
+func (mavls *MavlStore) MemSetUpgrade(datas *types.StoreSet, sync bool) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		kmlog.Info("mavl MemSet", "cost", types.Since(beg))
+	}()
+	if len(datas.KV) == 0 {
+		kmlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
+		return datas.StateHash, nil
+	}
+	tree := mavl.NewTree(mavls.db, sync)
+	tree.SetBlockHeight(datas.Height)
+	err := tree.Load(datas.StateHash)
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(datas.KV); i++ {
+		tree.Set(datas.KV[i].Key, datas.KV[i].Value)
+	}
+	hash := tree.Hash()
+	return hash, nil
+}
+
 // Commit convert memcory mavl to storage db
 func (mavls *MavlStore) Commit(req *types.ReqHash) ([]byte, error) {
 	beg := types.Now()
 	defer func() {
-		kmlog.Info("Commit", "cost", types.Since(beg))
+		kmlog.Info("mavl Commit", "cost", types.Since(beg))
 	}()
 	tree, ok := mavls.trees.Load(string(req.Hash))
 	if !ok {

@@ -24,6 +24,8 @@ type QueueProtocolAPI interface {
 	GetMempool() (*types.ReplyTxList, error)
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
+	// types.EventGetProperFee
+	GetProperFee() (*types.ReplyProperFee, error)
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
 	Query(driver, funcname string, param types.Message) (types.Message, error)
@@ -92,8 +94,6 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	// types.EventCreateTransaction 由服务器协助创建一个交易
-	WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error)
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
 	// types.EventQueryTx

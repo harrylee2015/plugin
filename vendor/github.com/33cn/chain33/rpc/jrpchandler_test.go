@@ -416,6 +416,7 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 		Fee:    29977777777,
 		Expire: "130s",
 		To:     "aabbccdd",
+		Index:  0,
 	}
 	var testResult interface{}
 	err := testChain33.ReWriteRawTx(reTx, &testResult)
@@ -428,7 +429,6 @@ func TestChain33_ReWriteRawTx(t *testing.T) {
 	err = types.Decode(txData, tx)
 	assert.Nil(t, err)
 	assert.Equal(t, tx.Fee, reTx.Fee)
-	assert.Equal(t, int64(130000000000), tx.Expire)
 	assert.Equal(t, reTx.To, tx.To)
 
 }
@@ -456,102 +456,8 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(0, types.GInt("MinFee"))
+	err = tx.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
 	assert.Nil(t, err)
-}
-
-func TestChain33_SendRawTransaction(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	// var result interface{}
-	api.On("SendTx", mock.Anything).Return()
-
-	testChain33 := newTestChain33(api)
-	var testResult interface{}
-	signedTx := rpctypes.SignedTx{
-		Unsign: "123",
-		Sign:   "123",
-		Pubkey: "123",
-		Ty:     1,
-	}
-	err := testChain33.SendRawTransaction(signedTx, &testResult)
-	t.Log(err)
-	assert.Nil(t, testResult)
-	assert.NotNil(t, err)
-	// api.Called(1)
-	// mock.AssertExpectationsForObjects(t, api)
-}
-
-func TestChain33_SendRawTransactionSignError(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	// var result interface{}
-	api.On("SendTx", mock.Anything).Return()
-
-	testChain33 := newTestChain33(api)
-	var testResult interface{}
-	src := []byte("123")
-	pubkey := make([]byte, hex.EncodedLen(len(src)))
-	hex.Encode(pubkey, src)
-	signedTx := rpctypes.SignedTx{
-		Unsign: "123",
-		Sign:   "123",
-		Pubkey: string(pubkey),
-		Ty:     1,
-	}
-	err := testChain33.SendRawTransaction(signedTx, &testResult)
-	t.Log(err)
-	assert.Nil(t, testResult)
-	assert.NotNil(t, err)
-	// api.Called(1)
-	// mock.AssertExpectationsForObjects(t, api)
-}
-
-func TestChain33_SendRawTransactionUnsignError(t *testing.T) {
-	reply := &types.Reply{IsOk: true}
-	api := new(mocks.QueueProtocolAPI)
-	// var result interface{}
-	api.On("SendTx", mock.Anything).Return(reply, nil)
-
-	testChain33 := newTestChain33(api)
-	var testResult interface{}
-	src := []byte("123")
-	pubkey := make([]byte, hex.EncodedLen(len(src)))
-	signkey := make([]byte, hex.EncodedLen(len(src)))
-
-	hex.Encode(pubkey, src)
-	hex.Encode(signkey, src)
-
-	signedTx := rpctypes.SignedTx{
-		Unsign: "123",
-		Sign:   string(signkey),
-		Pubkey: string(pubkey),
-		Ty:     1,
-	}
-	err := testChain33.SendRawTransaction(signedTx, &testResult)
-	t.Log(err)
-	assert.Nil(t, testResult)
-	assert.NotNil(t, err)
-
-	tx := &types.Transaction{
-		To: "to",
-	}
-	txByte := types.Encode(tx)
-	unsign := make([]byte, hex.EncodedLen(len(txByte)))
-	hex.Encode(unsign, txByte)
-
-	signedTx = rpctypes.SignedTx{
-		Unsign: string(unsign),
-		Sign:   string(signkey),
-		Pubkey: string(pubkey),
-		Ty:     1,
-	}
-	err = testChain33.SendRawTransaction(signedTx, &testResult)
-	t.Log(testResult)
-	assert.Nil(t, err)
-	assert.Equal(t, "0x", testResult)
-	//assert.NotNil(t, err)
-
-	// api.Called(1)
-	// mock.AssertExpectationsForObjects(t, api)
 }
 
 func TestChain33_SendTransaction(t *testing.T) {
@@ -1019,6 +925,23 @@ func TestChain33_GetLastMemPool(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_GetProperFee(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	// expected := &types.ReqBlocks{}
+	api.On("GetProperFee").Return(nil, errors.New("error value"))
+
+	var testResult interface{}
+	actual := types.ReqNil{}
+	err := testChain33.GetProperFee(actual, &testResult)
+	t.Log(err)
+	assert.Equal(t, nil, testResult)
+	assert.NotNil(t, err)
+
+	mock.AssertExpectationsForObjects(t, api)
+}
+
 func TestChain33_GetBlockOverview(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
@@ -1150,8 +1073,7 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	// expected := &types.GetSeedByPw{}
-	api.On("GetWalletStatus").Return(nil, errors.New("error value"))
+	api.On("GetWalletStatus").Return(nil, errors.New("error value")).Once()
 
 	var testResult interface{}
 	actual := types.ReqNil{}
@@ -1159,6 +1081,25 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
+
+	expect := types.WalletStatus{
+		IsWalletLock: true,
+		IsAutoMining: true,
+		IsHasSeed:    false,
+		IsTicketLock: false,
+	}
+	api.On("GetWalletStatus").Return(&expect, nil).Once()
+	err = testChain33.GetWalletStatus(actual, &testResult)
+	t.Log(err)
+	assert.Nil(t, err)
+	status, ok := testResult.(*rpctypes.WalletStatus)
+	if !ok {
+		t.Error("GetWalletStatus type error")
+	}
+	assert.Equal(t, expect.IsWalletLock, status.IsWalletLock)
+	assert.Equal(t, expect.IsAutoMining, status.IsAutoMining)
+	assert.Equal(t, expect.IsHasSeed, status.IsHasSeed)
+	assert.Equal(t, expect.IsTicketLock, status.IsTicketLock)
 
 	mock.AssertExpectationsForObjects(t, api)
 }
@@ -1417,15 +1358,6 @@ func TestChain33_DecodeRawTransaction(t *testing.T) {
 	var testResult interface{}
 	//api.On("GetFatalFailure", mock.Anything).Return(&types.Int32{}, nil)
 	err := client.DecodeRawTransaction(&types.ReqDecodeRawTransaction{TxHex: "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"}, &testResult)
-	assert.NoError(t, err)
-}
-
-func TestChain33_WalletCreateTx(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
-	client := newTestChain33(api)
-	var testResult interface{}
-	api.On("WalletCreateTx", mock.Anything).Return(&types.Transaction{}, nil)
-	err := client.WalletCreateTx(types.ReqCreateTransaction{}, &testResult)
 	assert.NoError(t, err)
 }
 

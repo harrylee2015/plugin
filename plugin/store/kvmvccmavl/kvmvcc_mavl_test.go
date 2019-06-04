@@ -18,6 +18,7 @@ import (
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/store"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -114,6 +115,44 @@ func TestKvmvccMavlMemSet(t *testing.T) {
 		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), values[1])
 	}
 	notExistHash, _ := store.Commit(&types.ReqHash{Hash: drivers.EmptyRoot[:]})
+	assert.Nil(t, notExistHash)
+}
+
+func TestKvmvccMavlMemSetUpgrade(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil).(*KVmMavlStore)
+	assert.NotNil(t, store)
+
+	kvmvccMavlFork = 50
+	defer func() {
+		kvmvccMavlFork = 200 * 10000
+	}()
+	hash := drivers.EmptyRoot[:]
+	for i := 0; i < 1; i++ {
+		var kvs []*types.KeyValue
+		kvs = append(kvs, &types.KeyValue{Key: []byte(fmt.Sprintf("k%d", i)), Value: []byte(fmt.Sprintf("v%d", i))})
+		kvs = append(kvs, &types.KeyValue{Key: []byte(fmt.Sprintf("key%d", i)), Value: []byte(fmt.Sprintf("value%d", i))})
+		datas := &types.StoreSet{
+			StateHash: hash,
+			KV:        kvs,
+			Height:    int64(i)}
+
+		hash, err = store.MemSetUpgrade(datas, true)
+		assert.Nil(t, err)
+		actHash, _ := store.CommitUpgrade(&types.ReqHash{Hash: hash})
+		assert.Equal(t, hash, actHash)
+		keys := [][]byte{[]byte(fmt.Sprintf("k%d", i)), []byte(fmt.Sprintf("key%d", i))}
+		get := &types.StoreGet{StateHash: hash, Keys: keys}
+		values := store.Get(get)
+		assert.Len(t, values, 2)
+		assert.Equal(t, []byte(fmt.Sprintf("v%d", i)), values[0])
+		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), values[1])
+	}
+	notExistHash, _ := store.CommitUpgrade(&types.ReqHash{Hash: drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 }
 
@@ -498,6 +537,19 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	assert.Equal(t, int64(0), resp.Amount)
 }
 
+func TestProcEvent(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	storeCfg, sub := newStoreCfgIter(dir)
+	store := New(storeCfg, sub).(*KVmMavlStore)
+	assert.NotNil(t, store)
+
+	store.ProcEvent(nil)
+	store.ProcEvent(&queue.Message{})
+}
+
 func GetRandomString(length int) string {
 	return common.GetRandPrintString(20, length)
 }
@@ -657,6 +709,58 @@ func TestGetKeyVersion(t *testing.T) {
 			require.Equal(t, h, int64(0))
 		}
 	}
+}
+
+func TestIsCommitMavl(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	storeCfg := newStoreCfg(dir)
+	store := New(storeCfg, nil).(*KVmMavlStore)
+	assert.NotNil(t, store)
+
+	isComm := isPrunedMavlDB(store.GetDB())
+	require.Equal(t, false, isComm)
+
+	store.GetDB().Set([]byte(fmt.Sprintln(leafNodePrefix, "123")), []byte("v1"))
+	store.GetDB().Set([]byte(fmt.Sprintln(leafNodePrefix, "456")), []byte("v2"))
+	isComm = isPrunedMavlDB(store.GetDB())
+	require.Equal(t, true, isComm)
+}
+
+func TestDeletePrunedMavl(t *testing.T) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	storeCfg := newStoreCfg(dir)
+	store := New(storeCfg, nil).(*KVmMavlStore)
+	assert.NotNil(t, store)
+
+	deletePrunedMavlData(store.GetDB(), hashNodePrefix)
+	store.GetDB().Set([]byte(fmt.Sprintln(hashNodePrefix, "123")), []byte("v1"))
+
+	//测试只有一条数据时候, 则不做删除
+	deletePrunedMavlData(store.GetDB(), hashNodePrefix)
+	v1, err := store.GetDB().Get([]byte(fmt.Sprintln(hashNodePrefix, "123")))
+	require.NoError(t, err)
+	require.Equal(t, v1, []byte("v1"))
+
+	//测试再加入一条数据，即两条时候
+	store.GetDB().Set([]byte(fmt.Sprintln(hashNodePrefix, "456")), []byte("v2"))
+	deletePrunedMavlData(store.GetDB(), hashNodePrefix)
+
+	v1, err = store.GetDB().Get([]byte(fmt.Sprintln(hashNodePrefix, "123")))
+	require.Error(t, err)
+	require.Equal(t, v1, []uint8([]byte(nil)))
+	v2, err := store.GetDB().Get([]byte(fmt.Sprintln(hashNodePrefix, "456")))
+	require.NoError(t, err)
+	require.Equal(t, v2, []byte("v2"))
+
+	wg.Add(1)
+	go deletePrunedMavl(store.GetDB())
+	wg.Wait()
 }
 
 func BenchmarkGetkmvccMavl(b *testing.B) { benchmarkGet(b, false) }

@@ -32,11 +32,14 @@ func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *t
 			key = calcLocalHeightKey(g.Title, g.Height)
 			set.KV = append(set.KV, &types.KeyValue{Key: key, Value: nil})
 
-			r, err := e.saveLocalParaTxs(tx, true)
-			if err != nil {
-				return nil, err
+			if !types.IsPara() {
+				r, err := e.saveLocalParaTxs(tx, true)
+				if err != nil {
+					return nil, err
+				}
+				set.KV = append(set.KV, r.KV...)
 			}
-			set.KV = append(set.KV, r.KV...)
+
 		} else if log.Ty == pt.TyLogParacrossCommitRecord {
 			var g pt.ReceiptParacrossRecord
 			types.Decode(log.Log, &g)
@@ -44,6 +47,58 @@ func (e *Paracross) ExecDelLocal_Commit(payload *pt.ParacrossCommitAction, tx *t
 			var r pt.ParacrossTx
 			r.TxHash = common.ToHex(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{Key: calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), Value: nil})
+		}
+	}
+	return &set, nil
+}
+
+// ExecDelLocal_NodeConfig node config tx delete process
+func (e *Paracross) ExecDelLocal_NodeConfig(payload *pt.ParaNodeAddrConfig, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var set types.LocalDBSet
+	for _, log := range receiptData.Logs {
+		if log.Ty == pt.TyLogParaNodeConfig {
+			var g pt.ReceiptParaNodeConfig
+			err := types.Decode(log.Log, &g)
+			if err != nil {
+				return nil, err
+			}
+			if g.Prev != nil {
+				set.KV = append(set.KV, &types.KeyValue{
+					Key: calcLocalNodeTitleStatus(g.Current.Title, g.Prev.Status, g.Prev.Id), Value: types.Encode(g.Prev)})
+			}
+
+			set.KV = append(set.KV, &types.KeyValue{
+				Key: calcLocalNodeTitleStatus(g.Current.Title, g.Current.Status, g.Current.Id), Value: nil})
+		} else if log.Ty == pt.TyLogParaNodeVoteDone {
+			var g pt.ReceiptParaNodeVoteDone
+			err := types.Decode(log.Log, &g)
+			if err != nil {
+				return nil, err
+			}
+			key := calcLocalNodeTitleDone(g.Title, g.TargetAddr)
+			set.KV = append(set.KV, &types.KeyValue{Key: key, Value: nil})
+		}
+	}
+	return &set, nil
+}
+
+// ExecDelLocal_NodeGroupConfig node group config tx delete process
+func (e *Paracross) ExecDelLocal_NodeGroupConfig(payload *pt.ParaNodeGroupConfig, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	var set types.LocalDBSet
+	for _, log := range receiptData.Logs {
+		if log.Ty == pt.TyLogParaNodeGroupConfig {
+			var g pt.ReceiptParaNodeGroupConfig
+			err := types.Decode(log.Log, &g)
+			if err != nil {
+				return nil, err
+			}
+			if g.Prev != nil {
+				set.KV = append(set.KV, &types.KeyValue{
+					Key: calcLocalNodeGroupStatusTitle(g.Prev.Status, g.Current.Title, g.Current.Id), Value: types.Encode(g.Prev)})
+			}
+
+			set.KV = append(set.KV, &types.KeyValue{
+				Key: calcLocalNodeGroupStatusTitle(g.Current.Status, g.Current.Title, g.Current.Id), Value: nil})
 		}
 	}
 	return &set, nil

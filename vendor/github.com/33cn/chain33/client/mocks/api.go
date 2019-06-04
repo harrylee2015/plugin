@@ -476,6 +476,29 @@ func (_m *QueueProtocolAPI) GetNetInfo() (*types.NodeNetInfo, error) {
 	return r0, r1
 }
 
+// GetProperFee provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetProperFee() (*types.ReplyProperFee, error) {
+	ret := _m.Called()
+
+	var r0 *types.ReplyProperFee
+	if rf, ok := ret.Get(0).(func() *types.ReplyProperFee); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyProperFee)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSeed provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error) {
 	ret := _m.Called(param)
@@ -1199,29 +1222,6 @@ func (_m *QueueProtocolAPI) Version() (*types.VersionInfo, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// WalletCreateTx provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Transaction
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Transaction)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateTransaction) error); ok {
-		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}

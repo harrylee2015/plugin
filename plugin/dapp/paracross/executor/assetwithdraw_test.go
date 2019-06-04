@@ -60,7 +60,7 @@ func (suite *AssetWithdrawTestSuite) SetupTest() {
 	MainBlockHash10 = blockDetail.Block.Hash()
 
 	// setup title nodes : len = 1
-	nodeConfigKey := calcConfigNodesKey(Title)
+	nodeConfigKey := calcManageConfigNodesKey(Title)
 	nodeValue := makeNodeInfo(Title, Title, 1)
 	suite.stateDB.Set(nodeConfigKey, types.Encode(nodeValue))
 	value, err := suite.stateDB.Get(nodeConfigKey)
@@ -106,7 +106,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnMainChain() {
 
 // 平行链执行
 func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
-	types.Init(Title, nil)
+	para_init(Title)
 	// make coins for transfer
 
 	total := 1000 * types.Coin
@@ -212,7 +212,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawAfterPara() {
 }
 
 func (suite *AssetWithdrawTestSuite) TestExecWithdrawFailedOnPara() {
-	types.Init(Title, nil)
+	para_init(Title)
 	// make coins for transfer
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)

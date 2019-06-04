@@ -57,6 +57,13 @@ if [ -n "${DAPP}" ]; then
 
 fi
 
+if [ -z "$DAPP" ] || [ "$DAPP" == "paracross" ]; then
+    # shellcheck source=/dev/null
+    source system-test-rpc.sh
+    # shellcheck source=/dev/null
+    source dapp-test-rpc.sh
+fi
+
 echo "=========== # env setting ============="
 echo "DAPP=$DAPP"
 echo "DAPP_TEST_FILE=$DAPP_TEST_FILE"
@@ -70,6 +77,9 @@ function base_init() {
     # update test environment
     sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
+
+    sed -i $sedfix 's/^powLimitBits=.*/powLimitBits="0x1f2fffff"/g' chain33.toml
+    sed -i $sedfix 's/^targetTimePerBlock=.*/targetTimePerBlock=1/g' chain33.toml
 
     # p2p
     sed -i $sedfix 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802"]/g' chain33.toml
@@ -86,6 +96,11 @@ function base_init() {
 
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
+
+    sed -i $sedfix 's/^nodeGroupFrozenCoins=.*/nodeGroupFrozenCoins=20/g' chain33.toml
+
+    # ticket
+    sed -i $sedfix 's/^ticketPrice =.*/ticketPrice = 10000/g' chain33.toml
 
 }
 
@@ -124,14 +139,14 @@ function start() {
     done
 
     miner "${CLI}"
-    #    miner "${CLI4}"
+    # miner "${CLI4}"
     block_wait "${CLI}" 1
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
-    res=$(${CLI} block hash -t 0 | jq ".hash")
-    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
-    if [ "${count}" != 1 ]; then
+    res=$(${CLI} block hash -t 0 | jq -r ".hash")
+    #in case changes result in genesis change
+    if [ "${res}" != "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6" ]; then
         echo "genesis hash error!"
         exit 1
     fi
@@ -158,7 +173,7 @@ function miner() {
     #fi
 
     echo "=========== # save seed to wallet ============="
-    result=$(${1} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    result=$(${1} seed save -p 1314fuzamei -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "save seed to wallet error seed, result: ${result}"
         exit 1
@@ -167,7 +182,7 @@ function miner() {
     sleep 1
 
     echo "=========== # unlock wallet ============="
-    result=$(${1} wallet unlock -p 1314 -t 0 | jq ".isok")
+    result=$(${1} wallet unlock -p 1314fuzamei -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
@@ -191,6 +206,7 @@ function miner() {
     fi
 
     sleep 1
+
     echo "=========== # close auto mining ============="
     result=$(${1} wallet auto_mine -f 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
@@ -313,17 +329,58 @@ function transfer() {
         echo "withdraw cannot find tx"
         exit 1
     fi
+
+    hash=$(${1} send coins transfer -a 1000 -n transfer -t 1E5saiXVb9mW8wcWUUZjsHJPZs5GmdzuSY -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
+    echo "${hash}"
+    block_wait "${1}" 1
+}
+
+function dapp_test_address() {
+    echo "=========== # import private key dapptest1 mining ============="
+    result=$(${1} account import_key -k 56942AD84CCF4788ED6DACBC005A1D0C4F91B63BCF0C99A02BE03C8DEAE71138 -l dapptest1 | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key dapptest2 mining ============="
+    result=$(${1} account import_key -k 2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989 -l dapptest2 | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    hash=$(${1} send coins transfer -a 1500 -n transfer -t 1PUiGcbsccfxW3zuvHXZBJfznziph5miAo -k 2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989)
+    echo "${hash}"
+    block_wait "${1}" 1
 }
 
 function base_config() {
-    sync
+    #    sync
     transfer "${CLI}"
     #    transfer "${CLI4}"
 }
 
+function rpc_test() {
+    if [ "$DAPP" == "" ]; then
+        system_test_rpc "http://${1}:8801"
+        dapp_test_address "${CLI}"
+        dapp_test_rpc "http://${1}:8801"
+    fi
+    if [ "$DAPP" == "paracross" ]; then
+        system_test_rpc "http://${1}:8901"
+        dapp_test_address "${CLI}"
+        dapp_test_rpc "http://${1}:8901"
+    fi
+
+}
 function dapp_run() {
     if [ -e "$DAPP_TEST_FILE" ]; then
-        ${DAPP} "${CLI}" "${1}"
+        ${DAPP} "${CLI}" "${1}" "${2}"
     fi
 
 }
@@ -341,7 +398,11 @@ function main() {
     dapp_run config
 
     ### test cases ###
-    dapp_run test
+    ip=$(${CLI} net info | jq -r ".externalAddr[0:10]")
+    dapp_run test "${ip}"
+
+    ### rpc test  ###
+    #    rpc_test "${ip}"
 
     ### finish ###
     check_docker_container

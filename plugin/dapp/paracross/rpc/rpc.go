@@ -72,12 +72,12 @@ func (c *Jrpc) ListTitles(req *types.ReqNil, result *interface{}) error {
 	return err
 }
 
-func (c *channelClient) GetTitleHeight(ctx context.Context, req *pt.ReqParacrossTitleHeight) (*pt.ReceiptParacrossDone, error) {
+func (c *channelClient) GetTitleHeight(ctx context.Context, req *pt.ReqParacrossTitleHeight) (*pt.ParacrossHeightStatusRsp, error) {
 	data, err := c.Query(pt.GetExecName(), "GetTitleHeight", req)
 	if err != nil {
 		return nil, err
 	}
-	if resp, ok := data.(*pt.ReceiptParacrossDone); ok {
+	if resp, ok := data.(*pt.ParacrossHeightStatusRsp); ok {
 		return resp, nil
 	}
 	return nil, types.ErrDecode
@@ -91,6 +91,17 @@ func (c *Jrpc) GetTitleHeight(req *pt.ReqParacrossTitleHeight, result *interface
 	data, err := c.cli.GetTitleHeight(context.Background(), req)
 	*result = data
 	return err
+}
+
+func (c *channelClient) GetDoneTitleHeight(ctx context.Context, req *pt.ReqParacrossTitleHeight) (*pt.RespParacrossDone, error) {
+	data, err := c.Query(pt.GetExecName(), "GetDoneTitleHeight", req)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.RespParacrossDone); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
 }
 
 func (c *channelClient) GetAssetTxResult(ctx context.Context, req *types.ReqHash) (*pt.ParacrossAsset, error) {
@@ -165,5 +176,131 @@ func (c *Jrpc) GetBlock2MainInfo(req *types.ReqBlocks, result *interface{}) erro
 
 	ret, err := c.cli.GetBlock2MainInfo(context.Background(), req)
 	*result = *ret
+	return err
+}
+
+// GetNodeStatus get super node status
+func (c *channelClient) GetNodeStatus(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*pt.ParaNodeIdStatus, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "GetNodeAddrInfo", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.ParaNodeIdStatus); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+// GetNodeStatus get super node status
+func (c *channelClient) GetNodeIDStatus(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*pt.ParaNodeIdStatus, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "GetNodeIdInfo", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.ParaNodeIdStatus); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+// GetNodeStatus get super node status
+func (c *Jrpc) GetNodeStatus(req *pt.ReqParacrossNodeInfo, result *interface{}) error {
+	if req == nil || (req.Addr == "" && req.Id == "") {
+		return types.ErrInvalidParam
+	}
+
+	var data *pt.ParaNodeIdStatus
+	var err error
+	if req.Addr != "" {
+		data, err = c.cli.GetNodeStatus(context.Background(), req)
+	}
+
+	if req.Id != "" {
+		data, err = c.cli.GetNodeIDStatus(context.Background(), req)
+	}
+
+	*result = data
+	return err
+}
+
+//ListNodeStatus list super node by status
+func (c *channelClient) ListNodeStatus(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*pt.RespParacrossNodeAddrs, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "ListNodeStatusInfo", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.RespParacrossNodeAddrs); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+//ListNodeStatus list super node by status
+func (c *Jrpc) ListNodeStatus(req *pt.ReqParacrossNodeInfo, result *interface{}) error {
+	data, err := c.cli.ListNodeStatus(context.Background(), req)
+	*result = data
+	return err
+}
+
+// GetNodeGroupAddrs get super node group addrs
+func (c *channelClient) GetNodeGroupAddrs(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*types.ReplyConfig, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "GetNodeGroupAddrs", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*types.ReplyConfig); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+// GetNodeGroupAddrs get super node group addrs
+func (c *Jrpc) GetNodeGroupAddrs(req *pt.ReqParacrossNodeInfo, result *interface{}) error {
+	data, err := c.cli.GetNodeGroupAddrs(context.Background(), req)
+	*result = data
+	return err
+}
+
+// GetNodeGroupStatus get super node group status
+func (c *channelClient) GetNodeGroupStatus(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*pt.ParaNodeGroupStatus, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "GetNodeGroupStatus", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.ParaNodeGroupStatus); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+// GetNodeGroupStatus get super node group status
+func (c *Jrpc) GetNodeGroupStatus(req *pt.ReqParacrossNodeInfo, result *interface{}) error {
+	data, err := c.cli.GetNodeGroupStatus(context.Background(), req)
+	*result = data
+	return err
+}
+
+//ListNodeGroupStatus list super node group by status
+func (c *channelClient) ListNodeGroupStatus(ctx context.Context, req *pt.ReqParacrossNodeInfo) (*pt.RespParacrossNodeGroups, error) {
+	r := *req
+	data, err := c.Query(pt.GetExecName(), "ListNodeGroupStatus", &r)
+	if err != nil {
+		return nil, err
+	}
+	if resp, ok := data.(*pt.RespParacrossNodeGroups); ok {
+		return resp, nil
+	}
+	return nil, types.ErrDecode
+}
+
+//ListNodeGroupStatus list super node group by status
+func (c *Jrpc) ListNodeGroupStatus(req *pt.ReqParacrossNodeInfo, result *interface{}) error {
+	data, err := c.cli.ListNodeGroupStatus(context.Background(), req)
+	*result = data
 	return err
 }

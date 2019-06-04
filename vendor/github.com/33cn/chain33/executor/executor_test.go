@@ -5,14 +5,15 @@
 package executor
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"time"
 
-	"encoding/hex"
-
 	"github.com/33cn/chain33/client/api"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
 	_ "github.com/33cn/chain33/system"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -30,7 +31,6 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
-	exec := &Executor{}
 	execInit(nil)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
@@ -59,7 +59,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, exec, nil, txs, nil)
+	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -74,7 +74,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(ctx, exec, nil, txs, nil)
+	execute = newExecutor(ctx, &Executor{}, nil, txs, nil)
 	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
@@ -109,7 +109,16 @@ func TestKeyAllow(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("retrieve can modify exec")
 	}
 }
@@ -123,7 +132,16 @@ func TestKeyAllow_evm(t *testing.T) {
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
 	tx12.Execer = exec
-	if !isAllowKeyWrite(key, exec, &tx12, int64(1)) {
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("user.evm.hash can modify exec")
 	}
 	//assert.Nil(t, t)
@@ -201,4 +219,38 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	_, err := exec.client.WaitTimeout(msg, 100*time.Second)
 	fmt.Println(err)
 	assert.Equal(t, true, api.IsAPIEnvError(err))
+}
+func TestCheckTx(t *testing.T) {
+	prev := types.GInt("MinFee")
+	types.SetMinFee(100000)
+	defer types.SetMinFee(prev)
+
+	q := queue.New("channel")
+
+	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
+	store := store.New(cfg.Store, sub.Store)
+	store.SetQueueClient(q.Client())
+	defer store.Close()
+
+	addr, priv := util.Genaddress()
+
+	tx := util.CreateCoinsTx(priv, addr, types.Coin)
+	tx.Execer = []byte("user.xxx")
+	tx.To = address.ExecAddress("user.xxx")
+	tx.Fee = 2 * types.Coin
+	tx.Sign(types.SECP256K1, priv)
+
+	var txs []*types.Transaction
+	txs = append(txs, tx)
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     0,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
+	err := execute.execCheckTx(tx, 0)
+	assert.Equal(t, err, types.ErrNoBalance)
 }

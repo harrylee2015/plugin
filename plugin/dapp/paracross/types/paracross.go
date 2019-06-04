@@ -7,6 +7,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/log/log15"
@@ -35,6 +36,12 @@ const (
 	TyLogParacrossMiner = 655
 	// TyLogParaAssetDeposit asset deposit log key
 	TyLogParaAssetDeposit = 656
+	// TyLogParaNodeConfig config super node log key
+	TyLogParaNodeConfig            = 657
+	TyLogParaNodeVoteDone          = 658
+	TyLogParaNodeGroupAddrsUpdate  = 659
+	TyLogParaNodeGroupConfig       = 660
+	TyLogParaNodeGroupStatusUpdate = 664
 )
 
 type paracrossCommitTx struct {
@@ -66,6 +73,10 @@ const (
 	ParacrossActionAssetTransfer = iota + paraCrossTransferActionTypeStart
 	// ParacrossActionAssetWithdraw paracross asset withdraw key
 	ParacrossActionAssetWithdraw
+	//ParacrossActionNodeConfig para super node config
+	ParacrossActionNodeConfig
+	//ParacrossActionNodeGroupApply apply for node group initially
+	ParacrossActionNodeGroupApply
 )
 
 // status
@@ -74,6 +85,46 @@ const (
 	ParacrossStatusCommiting = iota
 	// ParacrossStatusCommitDone commit done status
 	ParacrossStatusCommitDone
+)
+
+// node config op
+const (
+	ParaNodeJoin = iota + 1
+	ParaNodeVote
+	ParaNodeQuit
+)
+
+// node vote op
+const (
+	ParaNodeVoteInvalid = iota
+	ParaNodeVoteYes
+	ParaNodeVoteNo
+	ParaNodeVoteEnd
+)
+
+// ParaNodeVoteStr ...
+var ParaNodeVoteStr = []string{"invalid", "yes", "no"}
+
+const (
+	// ParacrossNodeJoining apply for adding group
+	ParacrossNodeJoining = iota + 1
+	// ParacrossNodeJoined pass to add by votes
+	ParacrossNodeJoined
+	// ParacrossNodeQuiting apply for quiting
+	ParacrossNodeQuiting
+	// ParacrossNodeQuited pass to quite by votes
+	ParacrossNodeQuited
+)
+
+const (
+	//ParacrossNodeGroupApply apply for para chain node group initially
+	ParacrossNodeGroupApply = iota + 1
+	//ParacrossNodeGroupApprove super manager approve the apply
+	ParacrossNodeGroupApprove
+	//ParacrossNodeGroupQuit applyer quit the apply when not be approved
+	ParacrossNodeGroupQuit
+	//ParacrossNodeGroupModify applyer modify some parameters
+	ParacrossNodeGroupModify
 )
 
 var (
@@ -124,12 +175,53 @@ func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*ty
 		Payload: types.Encode(action),
 		Fee:     fee,
 		To:      address.ExecAddress(name),
+		Expire:  types.Now().Unix() + int64(120), //120s
 	}
 	tx, err := types.FormatTx(name, tx)
 	if err != nil {
 		return nil, err
 	}
 	return tx, nil
+}
+
+// CreateRawNodeConfigTx create raw tx for node config
+func CreateRawNodeConfigTx(config *ParaNodeAddrConfig) (*types.Transaction, error) {
+	config.Title = types.GetTitle()
+	config.Addr = strings.Trim(config.Addr, " ")
+	config.Id = strings.Trim(config.Id, " ")
+
+	action := &ParacrossAction{
+		Ty:    ParacrossActionNodeConfig,
+		Value: &ParacrossAction_NodeConfig{config},
+	}
+	tx := &types.Transaction{
+		Payload: types.Encode(action),
+	}
+
+	return tx, nil
+}
+
+//CreateRawNodeGroupApplyTx create raw tx for node group
+func CreateRawNodeGroupApplyTx(apply *ParaNodeGroupConfig) (*types.Transaction, error) {
+	apply.Title = types.GetTitle()
+	apply.EmptyBlockInterval = 4
+	apply.Id = strings.Trim(apply.Id, " ")
+	interval := types.Conf("config.consensus.sub.para").GInt("emptyBlockInterval")
+	if interval > 0 {
+		apply.EmptyBlockInterval = uint32(interval)
+	}
+
+	action := &ParacrossAction{
+		Ty:    ParacrossActionNodeGroupApply,
+		Value: &ParacrossAction_NodeGroupConfig{apply},
+	}
+
+	tx := &types.Transaction{
+		Payload: types.Encode(action),
+	}
+
+	return tx, nil
+
 }
 
 // CreateRawAssetTransferTx create asset transfer tx
@@ -166,13 +258,11 @@ func CreateRawAssetTransferTx(param *types.CreateTx) (*types.Transaction, error)
 }
 
 // CreateRawMinerTx create miner tx
-func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
-	v := &ParacrossMinerAction{
-		Status: status,
-	}
+func CreateRawMinerTx(value *ParacrossMinerAction) (*types.Transaction, error) {
+
 	action := &ParacrossAction{
 		Ty:    ParacrossActionMiner,
-		Value: &ParacrossAction_Miner{v},
+		Value: &ParacrossAction_Miner{value},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(ParaX)),

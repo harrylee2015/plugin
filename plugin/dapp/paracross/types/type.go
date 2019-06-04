@@ -16,6 +16,8 @@ var (
 	// ParaX paracross exec name
 	ParaX = "paracross"
 	glog  = log.New("module", ParaX)
+	// ForkCommitTx main chain support paracross commit tx
+	ForkCommitTx = "ForkParacrossCommitTx"
 )
 
 func init() {
@@ -24,6 +26,7 @@ func init() {
 	types.RegistorExecutor(ParaX, NewType())
 	types.RegisterDappFork(ParaX, "Enable", 0)
 	types.RegisterDappFork(ParaX, "ForkParacrossWithdrawFromParachain", 1298600)
+	types.RegisterDappFork(ParaX, ForkCommitTx, 1850000)
 }
 
 // GetExecName get para exec name
@@ -51,26 +54,33 @@ func (p *ParacrossType) GetName() string {
 // GetLogMap get receipt log map
 func (p *ParacrossType) GetLogMap() map[int64]*types.LogInfo {
 	return map[int64]*types.LogInfo{
-		TyLogParacrossCommit:       {Ty: reflect.TypeOf(ReceiptParacrossCommit{}), Name: "LogParacrossCommit"},
-		TyLogParacrossCommitDone:   {Ty: reflect.TypeOf(ReceiptParacrossDone{}), Name: "LogParacrossCommitDone"},
-		TyLogParacrossCommitRecord: {Ty: reflect.TypeOf(ReceiptParacrossRecord{}), Name: "LogParacrossCommitRecord"},
-		TyLogParaAssetWithdraw:     {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetWithdraw"},
-		TyLogParaAssetTransfer:     {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetTransfer"},
-		TyLogParaAssetDeposit:      {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetDeposit"},
-		TyLogParacrossMiner:        {Ty: reflect.TypeOf(ReceiptParacrossMiner{}), Name: "LogParacrossMiner"},
+		TyLogParacrossCommit:           {Ty: reflect.TypeOf(ReceiptParacrossCommit{}), Name: "LogParacrossCommit"},
+		TyLogParacrossCommitDone:       {Ty: reflect.TypeOf(ReceiptParacrossDone{}), Name: "LogParacrossCommitDone"},
+		TyLogParacrossCommitRecord:     {Ty: reflect.TypeOf(ReceiptParacrossRecord{}), Name: "LogParacrossCommitRecord"},
+		TyLogParaAssetWithdraw:         {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetWithdraw"},
+		TyLogParaAssetTransfer:         {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetTransfer"},
+		TyLogParaAssetDeposit:          {Ty: reflect.TypeOf(types.ReceiptAccountTransfer{}), Name: "LogParaAssetDeposit"},
+		TyLogParacrossMiner:            {Ty: reflect.TypeOf(ReceiptParacrossMiner{}), Name: "LogParacrossMiner"},
+		TyLogParaNodeConfig:            {Ty: reflect.TypeOf(ReceiptParaNodeConfig{}), Name: "LogParaNodeConfig"},
+		TyLogParaNodeGroupAddrsUpdate:  {Ty: reflect.TypeOf(types.ReceiptConfig{}), Name: "LogParaNodeGroupAddrsUpdate"},
+		TyLogParaNodeVoteDone:          {Ty: reflect.TypeOf(ReceiptParaNodeVoteDone{}), Name: "LogParaNodeVoteDone"},
+		TyLogParaNodeGroupConfig:       {Ty: reflect.TypeOf(ReceiptParaNodeGroupConfig{}), Name: "LogParaNodeGroupConfig"},
+		TyLogParaNodeGroupStatusUpdate: {Ty: reflect.TypeOf(ReceiptParaNodeGroupConfig{}), Name: "LogParaNodeGroupStatusUpdate"},
 	}
 }
 
 // GetTypeMap get action type
 func (p *ParacrossType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
-		"Commit":         ParacrossActionCommit,
-		"Miner":          ParacrossActionMiner,
-		"AssetTransfer":  ParacrossActionAssetTransfer,
-		"AssetWithdraw":  ParacrossActionAssetWithdraw,
-		"Transfer":       ParacrossActionTransfer,
-		"Withdraw":       ParacrossActionWithdraw,
-		"TransferToExec": ParacrossActionTransferToExec,
+		"Commit":          ParacrossActionCommit,
+		"Miner":           ParacrossActionMiner,
+		"AssetTransfer":   ParacrossActionAssetTransfer,
+		"AssetWithdraw":   ParacrossActionAssetWithdraw,
+		"Transfer":        ParacrossActionTransfer,
+		"Withdraw":        ParacrossActionWithdraw,
+		"TransferToExec":  ParacrossActionTransferToExec,
+		"NodeConfig":      ParacrossActionNodeConfig,
+		"NodeGroupConfig": ParacrossActionNodeGroupApply,
 	}
 }
 
@@ -104,6 +114,29 @@ func (p ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		action == "ParacrossTransferToExec" || action == "TransferToExec" {
 
 		return p.CreateRawTransferTx(action, message)
+	} else if action == "NodeConfig" {
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
+		var param ParaNodeAddrConfig
+		err := types.JSONToPB(message, &param)
+		if err != nil {
+			glog.Error("CreateTx.NodeConfig", "Error", err)
+			return nil, types.ErrInvalidParam
+		}
+		return CreateRawNodeConfigTx(&param)
+	} else if action == "NodeGroupConfig" {
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
+		var param ParaNodeGroupConfig
+		err := types.JSONToPB(message, &param)
+		//err := json.Unmarshal(message, &param)
+		if err != nil {
+			glog.Error("CreateTx.NodeGroupApply", "Error", err)
+			return nil, types.ErrInvalidParam
+		}
+		return CreateRawNodeGroupApplyTx(&param)
 	}
 
 	return nil, types.ErrNotSupport

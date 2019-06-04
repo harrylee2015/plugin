@@ -32,6 +32,7 @@ var (
 	// 每个10000裁剪一次
 	pruneHeight  = 10000
 	pruningState int32
+	batch        dbm.Batch
 )
 
 var (
@@ -52,6 +53,7 @@ type KVMVCCStore struct {
 	enableMVCCIter  bool
 	enableMavlPrune bool
 	pruneHeight     int32
+	sync            bool
 }
 
 // NewKVMVCC construct KVMVCCStore module
@@ -63,10 +65,10 @@ func NewKVMVCC(sub *subKVMVCCConfig, db dbm.DB) *KVMVCCStore {
 	}
 	if enable {
 		kvs = &KVMVCCStore{db, dbm.NewMVCCIter(db), make(map[string][]*types.KeyValue),
-			true, sub.EnableMavlPrune, sub.PruneHeight}
+			true, sub.EnableMavlPrune, sub.PruneHeight, false}
 	} else {
 		kvs = &KVMVCCStore{db, dbm.NewMVCC(db), make(map[string][]*types.KeyValue),
-			false, sub.EnableMavlPrune, sub.PruneHeight}
+			false, sub.EnableMavlPrune, sub.PruneHeight, false}
 	}
 	EnablePrune(sub.EnableMavlPrune)
 	SetPruneHeight(int(sub.PruneHeight))
@@ -87,7 +89,7 @@ func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, hash []byte, sync bool) ([]
 	if err != nil {
 		return nil, err
 	}
-	mvccs.saveKVSets(kvlist)
+	mvccs.saveKVSets(kvlist, sync)
 	return hash, nil
 }
 
@@ -112,6 +114,10 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 
 // MemSet set kvs to the mem of KVMVCCStore module and return the StateHash
 func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, hash []byte, sync bool) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		kmlog.Info("kvmvcc MemSet", "cost", types.Since(beg))
+	}()
 	kvset, err := mvccs.checkVersion(datas.Height)
 	if err != nil {
 		return nil, err
@@ -128,6 +134,7 @@ func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, hash []byte, sync bool) 
 		kvset = append(kvset, kvlist...)
 	}
 	mvccs.kvsetmap[string(hash)] = kvset
+	mvccs.sync = sync
 	// 进行裁剪
 	if enablePrune && !isPruning() &&
 		pruneHeight != 0 &&
@@ -141,13 +148,42 @@ func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, hash []byte, sync bool) 
 
 // Commit kvs in the mem of KVMVCCStore module to state db and return the StateHash
 func (mvccs *KVMVCCStore) Commit(req *types.ReqHash) ([]byte, error) {
+	beg := types.Now()
+	defer func() {
+		kmlog.Info("kvmvcc Commit", "cost", types.Since(beg))
+	}()
 	_, ok := mvccs.kvsetmap[string(req.Hash)]
 	if !ok {
 		kmlog.Error("store kvmvcc commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
 	//kmlog.Debug("KVMVCCStore Commit saveKVSets", "hash", common.ToHex(req.Hash))
-	mvccs.saveKVSets(mvccs.kvsetmap[string(req.Hash)])
+	mvccs.saveKVSets(mvccs.kvsetmap[string(req.Hash)], mvccs.sync)
+	delete(mvccs.kvsetmap, string(req.Hash))
+	return req.Hash, nil
+}
+
+// CommitUpgrade kvs in the mem of KVMVCCStore module to state db and re
+func (mvccs *KVMVCCStore) CommitUpgrade(req *types.ReqHash) ([]byte, error) {
+	_, ok := mvccs.kvsetmap[string(req.Hash)]
+	if !ok {
+		kmlog.Error("store kvmvcc commit", "err", types.ErrHashNotFound)
+		return nil, types.ErrHashNotFound
+	}
+	//kmlog.Debug("KVMVCCStore Commit saveKVSets", "hash", common.ToHex(req.Hash))
+	if batch == nil {
+		batch = mvccs.db.NewBatch(mvccs.sync)
+	}
+	batch.Reset()
+	kvset := mvccs.kvsetmap[string(req.Hash)]
+	for i := 0; i < len(kvset); i++ {
+		if kvset[i].Value == nil {
+			batch.Delete(kvset[i].Key)
+		} else {
+			batch.Set(kvset[i].Key, kvset[i].Value)
+		}
+	}
+	batch.Write()
 	delete(mvccs.kvsetmap, string(req.Hash))
 	return req.Hash, nil
 }
@@ -208,16 +244,16 @@ func (mvccs *KVMVCCStore) Del(req *types.StoreDel) ([]byte, error) {
 	}
 
 	kmlog.Info("KVMVCCStore Del", "hash", common.ToHex(req.StateHash), "height", req.Height)
-	mvccs.saveKVSets(kvset)
+	mvccs.saveKVSets(kvset, mvccs.sync)
 	return req.StateHash, nil
 }
 
-func (mvccs *KVMVCCStore) saveKVSets(kvset []*types.KeyValue) {
+func (mvccs *KVMVCCStore) saveKVSets(kvset []*types.KeyValue, sync bool) {
 	if len(kvset) == 0 {
 		return
 	}
 
-	storeBatch := mvccs.db.NewBatch(true)
+	storeBatch := mvccs.db.NewBatch(sync)
 
 	for i := 0; i < len(kvset); i++ {
 		if kvset[i].Value == nil {
@@ -227,6 +263,11 @@ func (mvccs *KVMVCCStore) saveKVSets(kvset []*types.KeyValue) {
 		}
 	}
 	storeBatch.Write()
+}
+
+// GetMaxVersion 获取当前最大高度
+func (mvccs *KVMVCCStore) GetMaxVersion() (int64, error) {
+	return mvccs.mvcc.GetMaxVersion()
 }
 
 func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) {
