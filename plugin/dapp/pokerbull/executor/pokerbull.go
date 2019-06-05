@@ -49,10 +49,6 @@ func (g *PokerBull) GetDriverName() string {
 	return pkt.PokerBullX
 }
 
-func (u *PokerBull) ExecutorOrder() int64 {
-	return drivers.ExecLocalSameTime
-}
-
 func calcPBGameAddrPrefix(addr string) []byte {
 	key := fmt.Sprintf("LODB-pokerbull-addr:%s:", addr)
 	return []byte(key)
