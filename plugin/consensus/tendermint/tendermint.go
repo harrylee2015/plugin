@@ -6,6 +6,9 @@ package tendermint
 
 import (
 	"bytes"
+	context2 "context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -59,16 +62,22 @@ func init() {
 type Client struct {
 	//config
 	*drivers.BaseClient
-	genesisDoc    *ttypes.GenesisDoc // initial validator set
-	privValidator ttypes.PrivValidator
-	privKey       crypto.PrivKey // local node's p2p key
-	pubKey        string
-	csState       *ConsensusState
-	csStore       *ConsensusStore // save consensus state
-	crypto        crypto.Crypto
-	node          *Node
-	txsAvailable  chan int64
-	stopC         chan struct{}
+	genesisDoc               *ttypes.GenesisDoc // initial validator set
+	privValidator            ttypes.PrivValidator
+	privKey                  crypto.PrivKey // local node's p2p key
+	pubKey                   string
+	csState                  *ConsensusState
+	csStore                  *ConsensusStore // save consensus state
+	crypto                   crypto.Crypto
+	node                     *Node
+	nodev2                   *NodeV2
+	txsAvailable             chan int64
+	receiveDetectMsgChannel  chan *ttypes.Detection
+	sendMsgToP2pChannel      chan *types.ConsensusMsg
+	receiveMsgFromP2pChannel chan *types.ConsensusMsg
+	stopC                    chan struct{}
+	context                  context2.Context
+	cancel                   context2.CancelFunc
 }
 
 type subConfig struct {
@@ -176,17 +185,26 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	ttypes.InitMessageMap()
 
 	pubkey := privValidator.GetPubKey().KeyString()
+	//重新赋值，从配置文件中读取
+	priv = privValidator.PrivKey
 	c := drivers.NewBaseClient(cfg)
+	//采用context来统一管理所有服务
+	ctx, stop := context2.WithCancel(context2.Background())
 	client := &Client{
-		BaseClient:    c,
-		genesisDoc:    genDoc,
-		privValidator: privValidator,
-		privKey:       priv,
-		pubKey:        pubkey,
-		csStore:       NewConsensusStore(),
-		crypto:        cr,
-		txsAvailable:  make(chan int64, 1),
-		stopC:         make(chan struct{}, 1),
+		BaseClient:               c,
+		genesisDoc:               genDoc,
+		privValidator:            privValidator,
+		privKey:                  priv,
+		pubKey:                   pubkey,
+		csStore:                  NewConsensusStore(),
+		crypto:                   cr,
+		txsAvailable:             make(chan int64, 1),
+		receiveDetectMsgChannel:  make(chan *ttypes.Detection),
+		sendMsgToP2pChannel:      make(chan *types.ConsensusMsg),
+		receiveMsgFromP2pChannel: make(chan *types.ConsensusMsg),
+		stopC:                    make(chan struct{}, 1),
+		context:                  ctx,
+		cancel:                   stop,
 	}
 	c.SetChild(client)
 
@@ -218,6 +236,7 @@ func (client *Client) GenesisState() *State {
 func (client *Client) Close() {
 	client.node.Stop()
 	client.stopC <- struct{}{}
+	client.cancel()
 	tendermintlog.Info("consensus tendermint closed")
 }
 
@@ -229,7 +248,66 @@ func (client *Client) SetQueueClient(q queue.Client) {
 	})
 
 	go client.EventLoop()
+
+	go client.BroadcastPeerInfo()
+
+	go client.SinglecastConsensusMsg()
+
 	go client.StartConsensus()
+}
+
+// 广播本节点的映射关系
+func (client *Client) BroadcastPeerInfo() {
+	//广播节点信息
+	address := hex.EncodeToString(GenAddressByPubKey(client.privKey.PubKey()))
+	pubkeyStr := hex.EncodeToString(client.privKey.PubKey().Bytes())
+
+	for {
+		select {
+		case <-time.After(time.Second):
+			peerInfo, err := client.GetAPI().PeerInfo(&types.P2PGetPeerReq{P2PType: "dht"})
+			if err != nil {
+				tendermintlog.Error("get PeerInfo have err", err)
+				continue
+			}
+			for _, peerInfo := range peerInfo.Peers {
+				if peerInfo.Self {
+					detection := &ttypes.Detection{PeerID: peerInfo.Name, PeerIP: peerInfo.Addr, Address: address, PubKeyBytes: pubkeyStr,ExpireTime:time.Now().Unix()}
+					detection.Sign(client.privKey)
+					data, err := json.Marshal(detection)
+					if err != nil {
+						tendermintlog.Error("Marshal detection have err", err)
+						continue
+					}
+					conmsg := &types.ConsensusMsg{Data: data, MsgType: ttypes.DetectType, Name: "tendermint"}
+					msg := client.GetQueueClient().NewMessage("p2p", types.EventConsensusMsg,
+						conmsg)
+					err = client.GetQueueClient().Send(msg, false)
+					if err != nil {
+						tendermintlog.Error("PubBroadCast", "eventTy", types.EventConsensusMsg, "sendMsgErr", err)
+					}
+				}
+			}
+		case <-client.context.Done():
+			return
+		}
+	}
+}
+
+//共识状态机内部消息是单播
+func (client *Client) SinglecastConsensusMsg() {
+	for conMsg := range client.sendMsgToP2pChannel {
+		conMsg.Name = "tendermint"
+		conMsg.MsgType = ttypes.ConsentType
+		msg := client.GetQueueClient().NewMessage("p2p", types.EventConsensusMsg,
+			conMsg)
+		err := client.GetQueueClient().Send(msg, false)
+		if err != nil {
+			tendermintlog.Error("PubBroadCast", "eventTy", types.EventConsensusMsg, "sendMsgErr", err)
+		}
+		tendermintlog.Debug("I send consensus msg", "FromPeer_ID", conMsg.FromPeerID, "ToPeer", conMsg.ToPeerID)
+	}
+
 }
 
 // StartConsensus a routine that make the consensus start
@@ -313,12 +391,19 @@ OuterLoop:
 	client.csState = csState
 
 	// Create & add listener
-	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
-	node := NewNode(validatorNodes, protocol, listeningAddress, client.privKey, state.ChainID, tendermintVersion, csState)
+	//if len(validatorNodes) > 1 {
+	//	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
+	//	node := NewNode(validatorNodes, protocol, listeningAddress, client.privKey, state.ChainID, tendermintVersion, csState)
+	//	client.node = node
+	//	node.Start()
+	//} else {
+	//
+	//}
 
-	client.node = node
+	//TODO 启动libp2p进行通讯
+	node := NewNodeV2(client.receiveDetectMsgChannel, client.sendMsgToP2pChannel, client.receiveMsgFromP2pChannel, client.privKey, state.ChainID, tendermintVersion, csState)
+	client.nodev2 = node
 	node.Start()
-
 	go client.CreateBlock()
 }
 
@@ -398,7 +483,25 @@ func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail
 
 // ProcEvent reply not support action err
 func (client *Client) ProcEvent(msg *queue.Message) bool {
-	msg.ReplyErr("Client", types.ErrActionNotSupport)
+	//处理conMsg消息
+	if conMsg, ok := msg.Data.(*types.ConsensusMsg); ok {
+		switch conMsg.MsgType {
+		case ttypes.DetectType:
+			var detection ttypes.Detection
+			err := json.Unmarshal(conMsg.Data, &detection)
+			if err != nil {
+				tendermintlog.Error("unmarsha detection", err)
+				return false
+			}
+			client.receiveDetectMsgChannel <- &detection
+			tendermintlog.Debug("I receive detection", "peer_ID", detection.PeerID, "address", detection.Address)
+
+		case ttypes.ConsentType:
+			//如果是共识信息，则往下一层发送
+			tendermintlog.Debug("I Recieve consensus msg", "FromPeer_ID", conMsg.FromPeerID, "ToPeer", conMsg.ToPeerID)
+			client.receiveMsgFromP2pChannel <- conMsg
+		}
+	}
 	return true
 }
 

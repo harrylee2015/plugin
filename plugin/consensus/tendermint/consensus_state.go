@@ -190,7 +190,6 @@ func (cs *ConsensusState) LoadCommit(height int64) *tmtypes.TendermintCommit {
 func (cs *ConsensusState) Start() {
 	if atomic.CompareAndSwapUint32(&cs.status, 0, 1) {
 		cs.timeoutTicker.Start()
-
 		go cs.checkTxsAvailable()
 		// now start the receiveRoutine
 		go cs.receiveRoutine(0)

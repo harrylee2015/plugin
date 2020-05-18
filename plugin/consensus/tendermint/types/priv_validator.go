@@ -158,6 +158,14 @@ func PubKeyFromString(pubkeystring string) (crypto.PubKey, error) {
 	return pubkey, nil
 }
 
+func PubKeyFromBytes(pub []byte) (crypto.PubKey, error) {
+	pubkey, err := ConsensusCrypto.PubKeyFromBytes(pub)
+	if err != nil {
+		return nil, errors.New(Fmt("PubKeyFromString:PubKeyFromBytes:%v failed,err:%v", pub, err))
+	}
+	return pubkey, nil
+}
+
 // SignatureFromString ...
 func SignatureFromString(sigString string) (crypto.Signature, error) {
 	sigbyte, err := hex.DecodeString(sigString)
