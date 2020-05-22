@@ -75,9 +75,8 @@ type Client struct {
 	receiveDetectMsgChannel  chan *ttypes.Detection
 	sendMsgToP2pChannel      chan *types.ConsensusMsg
 	receiveMsgFromP2pChannel chan *types.ConsensusMsg
-	stopC                    chan struct{}
-	context                  context2.Context
-	cancel                   context2.CancelFunc
+	context context2.Context
+	cancel  context2.CancelFunc
 }
 
 type subConfig struct {
@@ -202,9 +201,9 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 		receiveDetectMsgChannel:  make(chan *ttypes.Detection),
 		sendMsgToP2pChannel:      make(chan *types.ConsensusMsg),
 		receiveMsgFromP2pChannel: make(chan *types.ConsensusMsg),
-		stopC:                    make(chan struct{}, 1),
-		context:                  ctx,
-		cancel:                   stop,
+		//stopC:                    make(chan struct{}, 1),
+		context: ctx,
+		cancel:  stop,
 	}
 	c.SetChild(client)
 
@@ -234,9 +233,17 @@ func (client *Client) GenesisState() *State {
 
 // Close TODO:may need optimize
 func (client *Client) Close() {
-	client.node.Stop()
-	client.stopC <- struct{}{}
+	if client.node != nil {
+		client.node.Stop()
+	}
+	if client.nodev2 != nil {
+		client.nodev2.Stop()
+	}
 	client.cancel()
+	close(client.sendMsgToP2pChannel)
+	close(client.receiveMsgFromP2pChannel)
+	close(client.receiveDetectMsgChannel)
+
 	tendermintlog.Info("consensus tendermint closed")
 }
 
@@ -272,7 +279,7 @@ func (client *Client) BroadcastPeerInfo() {
 			}
 			for _, peerInfo := range peerInfo.Peers {
 				if peerInfo.Self {
-					detection := &ttypes.Detection{PeerID: peerInfo.Name, PeerIP: peerInfo.Addr, Address: address, PubKeyBytes: pubkeyStr,ExpireTime:time.Now().Unix()}
+					detection := &ttypes.Detection{PeerID: peerInfo.Name, PeerIP: peerInfo.Addr, Address: address, PubKeyBytes: pubkeyStr, ExpireTime: time.Now().Unix()}
 					detection.Sign(client.privKey)
 					data, err := json.Marshal(detection)
 					if err != nil {
@@ -546,11 +553,6 @@ func (client *Client) getLastHeight() (int64, error) {
 // TxsAvailable check available channel
 func (client *Client) TxsAvailable() <-chan int64 {
 	return client.txsAvailable
-}
-
-// StopC stop client
-func (client *Client) StopC() <-chan struct{} {
-	return client.stopC
 }
 
 // CheckTxsAvailable check whether some new transactions arriving

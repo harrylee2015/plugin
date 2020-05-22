@@ -155,17 +155,21 @@ func (node *NodeV2) ListenPeerSet() {
 	//优雅读取channel数据
 	for detect := range node.receiveDetectMsgChannel {
 		//验证签名,嗅探包有效时间控制在两秒内
-		tendermintlog.Debug("node.state valdators", "num", len(node.state.Validators.Validators))
 		if (detect.ExpireTime+2) >= time.Now().Unix() && detect.CheckSign(node.state.Validators.Validators) {
 			//添加共识地址与p2p节点ID之间得映射关系
-			tendermintlog.Debug("I receive detection", "peer_ID", detect.PeerID, "address", detect.Address)
-			//不存在需要添加
-			if string(node.ID) != detect.Address && !node.peerSet.Has(ID(detect.Address)) {
-				node.addPeer(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP))
-				tendermintlog.Debug("I have  add peerconn", "peer_ID", detect.PeerID, "address", detect.Address)
-			} else {
-				tendermintlog.Debug("Ignoring inbound connection: already have enough peers", "address", detect.Address, "numPeers", node.peerSet.Size())
+			//不存在的需要添加
+			if string(node.ID) != detect.Address {
+				peer := node.peerSet.GetPeer(ID(detect.Address))
+				if peer == nil {
+					node.addPeer(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP))
+					tendermintlog.Debug("I have  add peerconn", "peer_ID", detect.PeerID, "address", detect.Address)
+				} else if peer.RemotePeerID() != detect.PeerID {
+					//移除过期的节点，添加新节点
+					node.peerSet.Remove(peer)
+					node.peerSet.Add(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP))
+				}
 			}
+
 		}
 
 	}

@@ -484,7 +484,7 @@ func (cs *ConsensusState) checkTxsAvailable() {
 				break
 			}
 			cs.txsAvailable <- height
-		case <-cs.client.StopC():
+		case <-cs.client.context.Done():
 			tendermintlog.Debug("checkTxsAvailable exit")
 			return
 		}
