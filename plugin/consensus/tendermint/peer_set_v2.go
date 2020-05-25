@@ -163,7 +163,7 @@ func (ps *PeerSetV2) Remove(peer PeerV2) {
 	if item == nil {
 		return
 	}
-
+	peer.Stop()
 	index := item.index
 	// Create a new copy of the list but with one less item.
 	// (we must copy because we'll be mutating the list).
@@ -315,9 +315,9 @@ func (pc *peerConnV2) Stop() {
 		tendermintlog.Info("peerConn stop waitQuit", "peerIP", pc.ip.String())
 
 		close(pc.sendQueue)
+		close(pc.receiveConMsgChannel)
 		pc.sendQueue = nil
 		pc.transferChannel = nil
-		//pc.CloseConn()
 		tendermintlog.Info("peerConn stop finish", "peerIP", pc.ip.String())
 	}
 }

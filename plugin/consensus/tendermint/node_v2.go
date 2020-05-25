@@ -83,6 +83,7 @@ func (node *NodeV2) Stop() {
 		peer.Stop()
 		node.peerSet.Remove(peer)
 	}
+	close(node.receiveMsgFromPeerSet)
 	//stop consensus
 	node.state.Stop()
 }
