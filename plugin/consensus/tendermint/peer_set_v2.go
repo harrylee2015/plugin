@@ -38,6 +38,9 @@ type PeerV2 interface {
 	SetTransferChannel(chan MsgInfo)
 	ReceiveMsg(msg *types.ConsensusMsg)
 	SendMsg(msg *types.ConsensusMsg)
+
+	SetExpireTime(expireTime int64)
+	CheckExpire() bool
 }
 
 // PeerConnState struct
@@ -81,6 +84,8 @@ type peerConnV2 struct {
 	state            *PeerConnState
 	updateStateQueue chan MsgInfo
 	heartbeatQueue   chan proto.Message
+	//有效期，原子锁,用于控制expireTime并发读写可能出现的资源竞争
+	expireTime *int64
 }
 
 // PeerSet struct
@@ -211,6 +216,13 @@ func (pc *peerConnV2) SetTransferChannel(transferChannel chan MsgInfo) {
 	pc.transferChannel = transferChannel
 }
 
+func (pc *peerConnV2) SetExpireTime(expireTime int64) {
+	atomic.StoreInt64(pc.expireTime,expireTime)
+}
+func (pc *peerConnV2) CheckExpire() bool {
+	val:=atomic.LoadInt64(pc.expireTime)
+	return val <= time.Now().Unix()
+}
 func (pc *peerConnV2) CloseConn() {
 	close(pc.receiveConMsgChannel)
 	close(pc.sendConMsgChannel)

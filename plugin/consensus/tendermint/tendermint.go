@@ -75,8 +75,8 @@ type Client struct {
 	receiveDetectMsgChannel  chan *ttypes.Detection
 	sendMsgToP2pChannel      chan *types.ConsensusMsg
 	receiveMsgFromP2pChannel chan *types.ConsensusMsg
-	context context2.Context
-	cancel  context2.CancelFunc
+	context                  context2.Context
+	cancel                   context2.CancelFunc
 }
 
 type subConfig struct {
@@ -398,19 +398,18 @@ OuterLoop:
 	client.csState = csState
 
 	// Create & add listener
-	//if len(validatorNodes) > 1 {
-	//	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
-	//	node := NewNode(validatorNodes, protocol, listeningAddress, client.privKey, state.ChainID, tendermintVersion, csState)
-	//	client.node = node
-	//	node.Start()
-	//} else {
-	//
-	//}
+	if len(validatorNodes) > 1 {
+		protocol, listeningAddress := "tcp", "0.0.0.0:46656"
+		node := NewNode(validatorNodes, protocol, listeningAddress, client.privKey, state.ChainID, tendermintVersion, csState)
+		client.node = node
+		node.Start()
+	} else {
+		//启动libp2p进行通讯
+		node := NewNodeV2(client.context, client.receiveDetectMsgChannel, client.sendMsgToP2pChannel, client.receiveMsgFromP2pChannel, client.privKey, state.ChainID, tendermintVersion, csState)
+		client.nodev2 = node
+		node.Start()
+	}
 
-	//TODO 启动libp2p进行通讯
-	node := NewNodeV2(client.receiveDetectMsgChannel, client.sendMsgToP2pChannel, client.receiveMsgFromP2pChannel, client.privKey, state.ChainID, tendermintVersion, csState)
-	client.nodev2 = node
-	node.Start()
 	go client.CreateBlock()
 }
 

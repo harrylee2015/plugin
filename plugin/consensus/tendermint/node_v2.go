@@ -5,6 +5,7 @@
 package tendermint
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"github.com/33cn/chain33/types"
@@ -36,10 +37,11 @@ type NodeV2 struct {
 	started          uint32 // atomic
 	stopped          uint32 // atomic
 	quit             chan struct{}
+	ctx              context.Context
 }
 
 // NewNode method
-func NewNodeV2(detectChannel <-chan *ttypes.Detection, sendMsgToP2pChannel chan<- *types.ConsensusMsg, receiveMsgFromP2pChannel <-chan *types.ConsensusMsg, privKey crypto.PrivKey, network string, version string, state *ConsensusState) *NodeV2 {
+func NewNodeV2(ctx context.Context, detectChannel <-chan *ttypes.Detection, sendMsgToP2pChannel chan<- *types.ConsensusMsg, receiveMsgFromP2pChannel <-chan *types.ConsensusMsg, privKey crypto.PrivKey, network string, version string, state *ConsensusState) *NodeV2 {
 	address := GenAddressByPubKey(privKey.PubKey())
 	node := &NodeV2{
 		peerSet:                  NewPeerSetV2(),
@@ -53,7 +55,8 @@ func NewNodeV2(detectChannel <-chan *ttypes.Detection, sendMsgToP2pChannel chan<
 		ID:                       ID(hex.EncodeToString(address)),
 		broadcastChannel:         make(chan MsgInfo, maxSendQueueSize),
 		state:                    state,
-		quit:                     make(chan struct{}),
+		//quit:                     make(chan struct{}),
+		ctx: ctx,
 	}
 	state.SetOurID(node.ID)
 	state.SetBroadcastChannel(node.broadcastChannel)
@@ -75,9 +78,9 @@ func (node *NodeV2) Start() {
 // Stop ...
 func (node *NodeV2) Stop() {
 	atomic.CompareAndSwapUint32(&node.stopped, 0, 1)
-	if node.quit != nil {
-		close(node.quit)
-	}
+	//if node.quit != nil {
+	//	close(node.quit)
+	//}
 	// Stop peers
 	for _, peer := range node.peerSet.List() {
 		peer.Stop()
@@ -122,8 +125,8 @@ func (node *NodeV2) BroadcastRoutine() {
 func (node *NodeV2) Relay() {
 	go func() {
 		for msg := range node.receiveMsgFromP2pChannel {
-			if node.peerSet.Has(ID(msg.FromPeerID)) {
-				node.peerSet.GetPeer(ID(msg.FromPeerID)).ReceiveMsg(msg)
+			if peer := node.peerSet.GetPeer(ID(msg.FromPeerID)); peer != nil {
+				peer.ReceiveMsg(msg)
 			} else {
 				tendermintlog.Error("not found peerconn", "peerID", msg.FromPeerID)
 			}
@@ -153,6 +156,21 @@ func (node *NodeV2) stopAndRemovePeer(peer PeerV2, reason interface{}) {
 
 //根据嗅探消息,维护PeerSet集合
 func (node *NodeV2) ListenPeerSet() {
+	go func() {
+		for {
+			select {
+			case <-time.After(30 * time.Second):
+				peerList := node.peerSet.List()
+				for _, peer := range peerList {
+					if peer.CheckExpire() {
+						node.peerSet.Remove(peer)
+					}
+				}
+			case <-node.ctx.Done():
+				break
+			}
+		}
+	}()
 	//优雅读取channel数据
 	for detect := range node.receiveDetectMsgChannel {
 		//验证签名,嗅探包有效时间控制在两秒内
@@ -162,12 +180,14 @@ func (node *NodeV2) ListenPeerSet() {
 			if string(node.ID) != detect.Address {
 				peer := node.peerSet.GetPeer(ID(detect.Address))
 				if peer == nil {
-					node.addPeer(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP))
+					node.addPeer(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP, detect.ExpireTime+30))
 					tendermintlog.Debug("I have  add peerconn", "peer_ID", detect.PeerID, "address", detect.Address)
 				} else if peer.RemotePeerID() != detect.PeerID {
 					//移除过期的节点，添加新节点
 					node.peerSet.Remove(peer)
-					node.peerSet.Add(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP))
+					node.peerSet.Add(newPeerConnV2(node.receiveMsgFromPeerSet, node.state, ID(detect.Address), detect.PeerID, detect.PeerIP, detect.ExpireTime+30))
+				} else {
+					peer.SetExpireTime(detect.ExpireTime + 30)
 				}
 			}
 
@@ -284,6 +304,7 @@ func newPeerConnV2(
 	id ID,
 	peerID string,
 	peerIP string,
+	expireTime int64,
 ) *peerConnV2 {
 	// Only the information we already have
 
@@ -294,5 +315,6 @@ func newPeerConnV2(
 		id:                   id,
 		peerID:               peerID,
 		ip:                   net.ParseIP(peerIP),
+		expireTime:           &expireTime,
 	}
 }
