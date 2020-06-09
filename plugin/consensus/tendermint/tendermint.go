@@ -256,9 +256,12 @@ func (client *Client) SetQueueClient(q queue.Client) {
 
 	go client.EventLoop()
 
-	go client.BroadcastPeerInfo()
+	if len(validatorNodes) > 1 {
 
-	go client.SinglecastConsensusMsg()
+		go client.BroadcastPeerInfo()
+
+		go client.SinglecastConsensusMsg()
+	}
 
 	go client.StartConsensus()
 }
