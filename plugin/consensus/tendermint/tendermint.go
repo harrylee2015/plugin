@@ -256,7 +256,8 @@ func (client *Client) SetQueueClient(q queue.Client) {
 
 	go client.EventLoop()
 
-	if len(validatorNodes) > 1 {
+	//节点小于1的话启用libp2p作为共识通信
+	if len(validatorNodes) <= 1 {
 
 		go client.BroadcastPeerInfo()
 
