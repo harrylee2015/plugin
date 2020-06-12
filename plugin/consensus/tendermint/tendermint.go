@@ -44,6 +44,7 @@ var (
 	skipTimeoutCommit                 = false
 	createEmptyBlocks                 = false
 	fastSync                          = false
+	preExec                           = false
 	createEmptyBlocksInterval   int32 // second
 	validatorNodes                    = []string{"127.0.0.1:46656"}
 	peerGossipSleepDuration     int32 = 100
@@ -95,6 +96,7 @@ type subConfig struct {
 	CreateEmptyBlocksInterval int32    `json:"createEmptyBlocksInterval"`
 	ValidatorNodes            []string `json:"validatorNodes"`
 	FastSync                  bool     `json:"fastSync"`
+	PreExec                   bool     `json:"preExec"`
 }
 
 func (client *Client) applyConfig(sub []byte) {
@@ -141,6 +143,7 @@ func (client *Client) applyConfig(sub []byte) {
 		validatorNodes = subcfg.ValidatorNodes
 	}
 	fastSync = subcfg.FastSync
+	preExec = subcfg.PreExec
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -603,7 +606,7 @@ func (client *Client) BuildBlock() *types.Block {
 func (client *Client) CommitBlock(block *types.Block) error {
 	cfg := client.GetAPI().GetConfig()
 	retErr := client.WriteBlock(nil, block)
-	if retErr != nil {
+	if preExec && retErr != nil {
 		tendermintlog.Info("CommitBlock fail", "err", retErr)
 		if client.WaitBlock(block.Height) {
 			curBlock, err := client.RequestBlock(block.Height)

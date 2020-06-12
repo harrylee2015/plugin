@@ -666,13 +666,15 @@ func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
 
 	// Decide on block
 	if cs.ValidBlock != nil {
-		// If there is valid block, PreExec that.
-		pblockNew := cs.client.PreExecBlock(cs.ValidBlock.Data, false)
-		if pblockNew == nil {
-			tendermintlog.Error("defaultDecideProposal PreExecBlock fail")
-			return
+		if preExec {
+			// If there is valid block, PreExec that.
+			pblockNew := cs.client.PreExecBlock(cs.ValidBlock.Data, false)
+			if pblockNew == nil {
+				tendermintlog.Error("defaultDecideProposal PreExecBlock fail")
+				return
+			}
+			cs.ValidBlock.Data = pblockNew
 		}
-		cs.ValidBlock.Data = pblockNew
 		block = cs.ValidBlock
 	} else {
 		// Create a new proposal block from state/txs from the mempool.
@@ -755,12 +757,14 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.TendermintBlock) 
 	}
 
 	block.Data.TxHash = merkle.CalcMerkleRoot(cfg, block.Data.Height, block.Data.Txs)
-	pblockNew := cs.client.PreExecBlock(block.Data, false)
-	if pblockNew == nil {
-		tendermintlog.Error("createProposalBlock PreExecBlock fail")
-		return nil
+	if preExec {
+		pblockNew := cs.client.PreExecBlock(block.Data, false)
+		if pblockNew == nil {
+			tendermintlog.Error("createProposalBlock PreExecBlock fail")
+			return nil
+		}
+		block.Data = pblockNew
 	}
-	block.Data = pblockNew
 	return block
 }
 
@@ -832,7 +836,7 @@ func (cs *ConsensusState) defaultDoPrevote(height int64, round int) {
 		return
 	}
 
-	if !cs.isProposer() {
+	if preExec && !cs.isProposer() {
 		// PreExec proposal block
 		blockCopy := *cs.ProposalBlock.Data
 		blockNew := cs.client.PreExecBlock(&blockCopy, true)
@@ -1112,6 +1116,10 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	} else {
 		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "CommitRound", cs.CommitRound,
 			"tx-len", len(commitBlock.Txs), "cost", types.Since(cs.begCons), "proposer-addr", fmt.Sprintf("%X", ttypes.Fingerprint(block.TendermintBlock.Header.ProposerAddr)))
+	}
+	reqblock, err := cs.client.RequestBlock(height)
+	if err == nil {
+		stateCopy.LastResultsHash = reqblock.Hash(cs.client.GetAPI().GetConfig())
 	}
 
 	//check whether need update validator nodes
