@@ -31,6 +31,7 @@ import (
 	ty "github.com/33cn/plugin/plugin/dapp/valnode/types"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
+	cty "github.com/33cn/chain33/system/dapp/commands/types"
 )
 
 const fee = 1e6
@@ -58,6 +59,13 @@ func main() {
 			return
 		}
 		Perf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5])
+
+	case "perfCertTx":
+		if len(argsWithoutProg) != 9 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		PerfCertTx(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5],argsWithoutProg[6],argsWithoutProg[7],argsWithoutProg[8])
 	case "put":
 		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -88,11 +96,12 @@ func main() {
 // LoadHelp ...
 func LoadHelp() {
 	fmt.Println("Available Commands:")
-	fmt.Println("perf [host, size, num, interval, duration]                   : 写数据性能测试，interval单位为100毫秒，host形式为ip:port")
-	fmt.Println("put  [ip, size]                                              : 写数据")
-	fmt.Println("get  [ip, hash]                                              : 读数据")
-	fmt.Println("valnode [ip, pubkey, power]                                  : 增加/删除/修改tendermint节点")
-	fmt.Println("perfOld [ip, size, num, interval, duration]                  : 不推荐使用，写数据性能测试，interval单位为100毫秒")
+	fmt.Println("perf [host, size, num, interval, duration]                                                  : 写数据性能测试，interval单位为100毫秒，host形式为ip:port")
+	fmt.Println("perfCertTx [host, size, num, interval, duration,privateFilePath,certFilePath,signType]      : 写数据性能测试，interval单位为100毫秒，host形式为ip:port")
+	fmt.Println("put  [ip, size]                                                                             : 写数据")
+	fmt.Println("get  [ip, hash]                                                                             : 读数据")
+	fmt.Println("valnode [ip, pubkey, power]                                                                 : 增加/删除/修改tendermint节点")
+	fmt.Println("perfOld [ip, size, num, interval, duration]                                                 : 不推荐使用，写数据性能测试，interval单位为100毫秒")
 }
 
 // Perf 性能测试
@@ -166,6 +175,146 @@ func Perf(host, txsize, num, sleepinterval, totalduration string) {
 					tx.Payload = RandStringBytes(sizeInt)
 					//交易签名
 					tx.Sign(types.SECP256K1, priv)
+					txChan <- tx
+				}
+				if sleep > 0 {
+					time.Sleep(100 * time.Millisecond * time.Duration(sleep))
+				}
+			}
+			ch <- struct{}{}
+		}()
+	}
+
+	for i := 0; i < numThread*2; i++ {
+		go func() {
+			conn := newGrpcConn(host)
+			defer conn.Close()
+			gcli := types.NewChain33Client(conn)
+
+			for tx := range txChan {
+				//发送交易
+				_, err := gcli.SendTransaction(context.Background(), tx, grpc.UseCompressor("gzip"))
+
+				txPool.Put(tx)
+				atomic.AddInt64(&total, 1)
+				if err != nil {
+					if strings.Contains(err.Error(), "ErrTxExpire") {
+						continue
+					}
+					if strings.Contains(err.Error(), "ErrMemFull") {
+						time.Sleep(time.Second)
+						continue
+					}
+
+					log.Error("sendtx", "err", err)
+					time.Sleep(time.Second)
+					//conn.Close()
+					//conn = newGrpcConn(ip)
+					//gcli = types.NewChain33Client(conn)
+				} else {
+					atomic.AddInt64(&success, 1)
+				}
+			}
+			chSend <- struct{}{}
+		}()
+	}
+
+	for j := 0; j < numThread; j++ {
+		<-ch
+	}
+	close(txChan)
+	for k := 0; k < numThread*2; k++ {
+		<-chSend
+	}
+	//打印发送的交易总数
+	log.Info("sendtx total tx", "total", total)
+	//打印成功发送的交易总数
+	log.Info("sendtx success tx", "success", success)
+}
+
+// PerfCertTx 性能测试(模拟单个账户携带整数上链)
+func PerfCertTx(host, txsize, num, sleepinterval, totalduration,privaFilePath,certFilePath,signType string) {
+	var numThread int
+	numInt, err := strconv.Atoi(num)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sleep, err := strconv.Atoi(sleepinterval)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	durInt, err := strconv.Atoi(totalduration)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	privateKey,err := cty.LoadPrivKeyFromLocal(signType,privaFilePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	certByte,err :=cty.ReadFile(certFilePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	sizeInt, _ := strconv.Atoi(txsize)
+	if numInt < 10 {
+		numThread = 1
+	} else if numInt > 100 {
+		numThread = 10
+	} else {
+		numThread = numInt / 10
+	}
+	numThread = runtime.NumCPU()
+	ch := make(chan struct{}, numThread)
+	chSend := make(chan struct{}, numThread*2)
+	txChan := make(chan *types.Transaction, numInt)
+	//payload := RandStringBytes(sizeInt)
+	var blockHeight int64
+	total := int64(0)
+	success := int64(0)
+
+	go func() {
+		ch <- struct{}{}
+		conn := newGrpcConn(host)
+		defer conn.Close()
+		gcli := types.NewChain33Client(conn)
+		for {
+			height, err := getHeight(gcli)
+			if err != nil {
+				//conn.Close()
+				log.Error("getHeight", "err", err)
+				//conn = newGrpcConn(ip)
+				//gcli = types.NewChain33Client(conn)
+				time.Sleep(time.Second)
+			} else {
+				atomic.StoreInt64(&blockHeight, height)
+			}
+			time.Sleep(time.Millisecond * 500)
+		}
+	}()
+	<-ch
+
+	for i := 0; i < numThread; i++ {
+		go func() {
+			for sec := 0; durInt == 0 || sec < durInt; sec++ {
+				height := atomic.LoadInt64(&blockHeight)
+				for txs := 0; txs < numInt/numThread; txs++ {
+					//构造存证交易
+					tx := txPool.Get().(*types.Transaction)
+					tx.To = execAddr
+					tx.Fee = rand.Int63()
+					tx.Nonce = time.Now().UnixNano()
+					tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
+					tx.Payload = RandStringBytes(sizeInt)
+					//构造cert交易并签名
+					hextx,_:=cty.CreateTxWithCert(signType,privateKey,common.ToHex(types.Encode(tx)),certByte)
+					data,_:=common.FromHex(hextx)
+					types.Decode(data,tx)
+
 					txChan <- tx
 				}
 				if sleep > 0 {
