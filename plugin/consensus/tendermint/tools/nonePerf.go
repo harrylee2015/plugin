@@ -311,10 +311,10 @@ func PerfCertTx(host, txsize, num, sleepinterval, totalduration,privaFilePath,ce
 					tx.Expire = height + types.TxHeightFlag + types.LowAllowPackHeight
 					tx.Payload = RandStringBytes(sizeInt)
 					//构造cert交易并签名
+					tx.Signature =nil
 					hextx,_:=cty.CreateTxWithCert(signType,privateKey,common.ToHex(types.Encode(tx)),certByte)
 					data,_:=common.FromHex(hextx)
 					types.Decode(data,tx)
-
 					txChan <- tx
 				}
 				if sleep > 0 {
